@@ -18,4 +18,4 @@ def validate_certificate(request):
             return redirect('/certificates/' + cert_id)
         context['exists'] = certificate_exists
         context['_id'] = cert_id
-    return render_to_response('certificates/validate_certificates.html', context) 
+    return render_to_response('certificates/validate_certificates.html', context)
