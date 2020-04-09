@@ -254,9 +254,19 @@ def enrolled_students_features(course_key, features):
             if 'meta.' in feature:
                 meta_key = feature.split('.')[1]
                 meta_features.append((feature, meta_key))
+        aux_dict = {}
+        try:
+            from uchileedxlogin.models import EdxLoginUser
+            edxlogin_user = EdxLoginUser.objects.get(user=student)
+            aux_dict['run'] = edxlogin_user.run
+        except (ImportError, EdxLoginUser.DoesNotExist):
+            aux_dict['run'] = ""
 
-        student_dict = dict((feature, extract_attr(student, feature))
+        student_dict = aux_dict
+        student_dict_aux = dict((feature, extract_attr(student, feature))
                             for feature in student_features)
+        
+        student_dict.update(student_dict_aux)
         profile = student.profile
         if profile is not None:
             profile_dict = dict((feature, extract_attr(profile, feature))

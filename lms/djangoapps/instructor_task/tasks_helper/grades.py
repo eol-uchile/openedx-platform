@@ -230,9 +230,9 @@ class CourseGradeReport(object):
     def _success_headers(self, context):
         """
         Returns a list of all applicable column headers for this grade report.
-        """
+        """       
         return (
-            ["Student ID", "Email", "Username"] +
+            ["Student ID", "Run", "Email", "Username"] +
             self._grades_header(context) +
             (['Cohort Name'] if context.cohorts_enabled else []) +
             [u'Experiment Group ({})'.format(partition.name) for partition in context.course_experiments] +
@@ -494,8 +494,16 @@ class CourseGradeReport(object):
                     # An empty gradeset means we failed to grade a student.
                     error_rows.append([user.id, user.username, text_type(error)])
                 else:
+                    aux = []
+                    try:
+                        from uchileedxlogin.models import EdxLoginUser
+                        edxlogin_user = EdxLoginUser.objects.get(user=user)
+                        aux = [user.id, edxlogin_user.run, user.email, user.username]
+                    except (ImportError, EdxLoginUser.DoesNotExist):
+                        aux = [user.id, "", user.email, user.username]
+
                     success_rows.append(
-                        [user.id, user.email, user.username] +
+                        aux +
                         self._user_grades(course_grade, context) +
                         self._user_cohort_group_names(user, context) +
                         self._user_experiment_group_names(user, context) +

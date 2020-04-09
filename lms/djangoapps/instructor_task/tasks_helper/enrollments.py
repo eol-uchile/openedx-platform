@@ -203,6 +203,7 @@ def upload_students_csv(_xmodule_instance_args, _entry_id, course_id, task_input
     task_progress.update_task_state(extra_meta=current_step)
 
     # compute the student features table and format it
+    task_input.insert(0,'run')
     query_features = task_input
     student_data = enrolled_students_features(course_id, query_features)
     header, rows = format_dictlist(student_data, query_features)
