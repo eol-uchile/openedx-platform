@@ -90,7 +90,7 @@ from openedx.core.djangoapps.user_api.partition_schemes import RandomUserPartiti
 from openedx.core.djangoapps.util.testing import ContentGroupTestCase, TestConditionalContent
 from ..models import ReportStore
 from ..tasks_helper.utils import UPDATE_STATUS_FAILED, UPDATE_STATUS_SUCCEEDED
-
+from django.test.utils import override_settings
 
 class InstructorGradeReportTestCase(TestReportMixin, InstructorTaskCourseTestCase):
     """ Base class for grade report tests. """
@@ -1500,20 +1500,54 @@ class TestStudentReport(TestReportMixin, InstructorTaskCourseTestCase):
 
         self.current_task = Mock()
         self.current_task.update_state = Mock()
-        task_input = {
-            'features': [
+        task_input = [
                 'id', 'username', 'name', 'email', 'language', 'location',
                 'year_of_birth', 'gender', 'level_of_education', 'mailing_address',
                 'goals'
             ]
-        }
+        
         with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task') as mock_current_task:
             mock_current_task.return_value = self.current_task
             result = upload_students_csv(None, None, self.course.id, task_input, 'calculated')
         # This assertion simply confirms that the generation completed with no errors
         num_students = len(students)
         self.assertDictContainsSubset({'attempted': num_students, 'succeeded': num_students, 'failed': 0}, result)
+    
+    ################ EOL ###############################################
+    @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)
+    def test_users_with_run(self):
+        """
+        Test uchileedxlogin users 
+        """
+        from uchileedxlogin.models import EdxLoginUser
+        
+        aux_student = self.create_student(username="student1", email='student1@example.com')
+        EdxLoginUser.objects.create(user=aux_student, run='000000001K')
 
+        self.current_task = Mock()
+        self.current_task.update_state = Mock()
+        task_input = [
+                'id', 'username', 'name', 'email', 'language', 'location',
+                'year_of_birth', 'gender', 'level_of_education', 'mailing_address',
+                'goals'
+            ]
+        
+        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task') as mock_current_task:
+            mock_current_task.return_value = self.current_task
+            result = upload_students_csv(None, None, self.course.id, task_input, 'calculated')
+            # This assertion simply confirms that the generation completed with no errors
+            self.assertDictContainsSubset({'attempted': 1, 'succeeded': 1, 'failed': 0}, result)
+            self.verify_rows_in_csv(
+                [
+                    {
+                        u'id': unicode(aux_student.id),
+                        u'run': '000000001K',
+                        u'email': aux_student.email,
+                        u'username': aux_student.username,                      
+                    },
+                ],
+                ignore_other_columns=True,
+            )  
 
 class TestTeamStudentReport(TestReportMixin, InstructorTaskCourseTestCase):
     "Test the student report when including teams information. "
@@ -1986,6 +2020,38 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
                     self.assertFalse(mock_get_score.called)
                     self.assertFalse(mock_course_blocks.called)
 
+    ################ EOL ###############################################
+    @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)            
+    def test_grade_report_with_run(self):
+        self.submit_student_answer(self.student.username, u'Problem1', ['Option 1'])
+        
+        from uchileedxlogin.models import EdxLoginUser
+
+        EdxLoginUser.objects.create(user=self.student, run='009472337K')
+        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
+            result = CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
+
+            self.assertDictContainsSubset(
+                {'action_name': 'graded', 'attempted': 1, 'succeeded': 1, 'failed': 0},
+                result,
+            )
+            self.verify_rows_in_csv(
+                [
+                    {
+                        u'Student ID': unicode(self.student.id),
+                        u'Run': '009472337K',
+                        u'Email': self.student.email,
+                        u'Username': self.student.username,
+                        u'Grade': '0.13',
+                        u'Homework 1: Subsection': '0.5',
+                        u'Homework 2: Hidden': u'Not Attempted',
+                        u'Homework 3: Unattempted': u'Not Attempted',
+                        u'Homework 4: Empty': u'Not Attempted',
+                        u'Homework (Avg)': '0.125',
+                    },
+                ],
+                ignore_other_columns=True,
+            )  
 
 @ddt.ddt
 @patch('lms.djangoapps.instructor_task.tasks_helper.misc.DefaultStorage', new=MockDefaultStorage)

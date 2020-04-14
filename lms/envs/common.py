@@ -3488,3 +3488,6 @@ plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_c
 
 ############## EOL #########################
 REGISTRATION_EMAIL_PATTERNS_DISALLOWED = None
+
+############## Grade Report - uchileedxlogin #########################
+UCHILEEDXLOGIN_TASK_RUN_ENABLE = False
