@@ -1519,7 +1519,11 @@ class TestStudentReport(TestReportMixin, InstructorTaskCourseTestCase):
         """
         Test uchileedxlogin users 
         """
-        from uchileedxlogin.models import EdxLoginUser
+        try:
+            from unittest.case import SkipTest
+            from uchileedxlogin.models import EdxLoginUser
+        except ImportError:
+            self.skipTest("import error uchileedxlogin")
         
         aux_student = self.create_student(username="student1", email='student1@example.com')
         EdxLoginUser.objects.create(user=aux_student, run='000000001K')
@@ -2023,9 +2027,13 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
     ################ EOL ###############################################
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)            
     def test_grade_report_with_run(self):
-        self.submit_student_answer(self.student.username, u'Problem1', ['Option 1'])
-        
-        from uchileedxlogin.models import EdxLoginUser
+        try:
+            from unittest.case import SkipTest
+            from uchileedxlogin.models import EdxLoginUser
+        except ImportError:
+            self.skipTest("import error uchileedxlogin")
+            
+        self.submit_student_answer(self.student.username, u'Problem1', ['Option 1'])  
 
         EdxLoginUser.objects.create(user=self.student, run='009472337K')
         with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
@@ -2051,8 +2059,8 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
                     },
                 ],
                 ignore_other_columns=True,
-            )  
-
+            )          
+        
 @ddt.ddt
 @patch('lms.djangoapps.instructor_task.tasks_helper.misc.DefaultStorage', new=MockDefaultStorage)
 class TestGradeReportEnrollmentAndCertificateInfo(TestReportMixin, InstructorTaskModuleTestCase):

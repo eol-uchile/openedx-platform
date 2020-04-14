@@ -274,7 +274,11 @@ class TestAnalyticsBasic(ModuleStoreTestCase):
 ################ EOL ###############################################
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)
     def test_enrolled_students_features_keys_with_run(self):
-        from uchileedxlogin.models import EdxLoginUser
+        try:
+            from unittest.case import SkipTest
+            from uchileedxlogin.models import EdxLoginUser
+        except ImportError:
+            self.skipTest("import error uchileedxlogin")
         runs = ('run',)
         query_features = ('run', 'username', 'name', 'email', 'city', 'country',)
         for user in self.users:
@@ -298,7 +302,7 @@ class TestAnalyticsBasic(ModuleStoreTestCase):
             self.assertEqual(userreport['name'], user.profile.name)
             self.assertEqual(userreport['city'], user.profile.city)
             self.assertEqual(userreport['country'], user.profile.country)
-            self.assertEqual(userreport['run'], aux.run)
+            self.assertEqual(userreport['run'], aux.run)        
 
 @patch.dict('django.conf.settings.FEATURES', {'ENABLE_PAID_COURSE_REGISTRATION': True})
 class TestCourseSaleRecordsAnalyticsBasic(ModuleStoreTestCase):
