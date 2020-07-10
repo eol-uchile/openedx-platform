@@ -36,7 +36,7 @@ WORKDIR /openedx/edx-platform
 # Also update boto from 2.39.0 to 2.40.0 as it has an exception on python3
 ENV NO_PYTHON_UNINSTALL 1
 RUN pip install pip==20.0.2 \
-  && pip install --src ../venv/src -r requirements/edx/base.txt
+  && pip install --src ../venv/src -r requirements/edx/base.txt \
   && pip install boto==2.40.0
 
 # Remove the original versions of ora2 and edx-sga
