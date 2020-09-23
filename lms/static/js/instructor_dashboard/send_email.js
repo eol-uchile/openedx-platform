@@ -95,11 +95,13 @@
                         }
                     };
                     successMessage = gettext('Your email message was successfully queued for sending. In courses with a large number of learners, email messages to learners might take up to an hour to be sent.');  // eslint-disable-line max-len
+                    successMessage += '<br><br>'+gettext('Sent To:');
                     confirmMessage = gettext(
                         'You are sending an email message with the subject {subject} to the following recipients.');
                     for (i = 0, len = targets.length; i < len; i++) {
                         target = targets[i];
                         confirmMessage += '\n-' + displayTarget(target);
+                        successMessage += '<br>-' + displayTarget(target);
                     }
                     confirmMessage += '\n\n' + gettext('Is this OK?');
                     fullConfirmMessage = confirmMessage.replace('{subject}', subject);
@@ -219,7 +221,7 @@
         SendEmail.prototype.display_response = function(dataFromServer) {
             this.$task_response.empty();
             this.$request_response_error.empty();
-            this.$task_response.text(dataFromServer);
+            this.$task_response.html(dataFromServer);
             return $('.msg-confirm').css({
                 display: 'block'
             });

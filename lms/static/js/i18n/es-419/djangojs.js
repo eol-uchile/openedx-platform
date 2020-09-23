@@ -780,7 +780,7 @@
     "Error: You cannot remove yourself from the Instructor group!": "Error: No puedes eliminarse a ti mismo del grupo de instructores!",
     "Errors": "Errores",
     "Errors/Technical Issues": "Problemas t\u00e9cnicos/errores",
-    "Everyone who has staff privileges in this course": "todos los usuarios con rol de funcionario para este curso",
+    "Everyone who has staff privileges in this course": "Todos los usuarios con rol de funcionario para este curso",
     "Exam Types": "Tipos de ex\u00e1men",
     "Exam timer and end exam button": "Cronometro del examen y bot\u00f3n de finalizar examen",
     "Exception Granted": "Acceso concedido",
