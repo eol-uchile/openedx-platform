@@ -29,8 +29,8 @@ jobs:
         run: |
           echo "${DOCKERHUB_PASSWORD}" | docker login --username ${DOCKERHUB_USER} --password-stdin
           docker push eoluchile/edx-platform:${GITHUB_SHA}
-          docker push eoluchile/edx-platform:koa
-          docker push eoluchile/edx-platform:testing-koa
+          #docker push eoluchile/edx-platform:koa
+          #docker push eoluchile/edx-platform:testing-koa
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
