@@ -1,0 +1,4 @@
+edxapp ALL=(sandbox)  SETENV:NOPASSWD:/openedx/venv/sandbox/bin/python
+edxapp ALL=(sandbox)  SETENV:NOPASSWD:/usr/bin/find /tmp/codejail-*/tmp -mindepth 1 -maxdepth 1 -exec rm -rf {} ;
+edxapp ALL=(ALL) NOPASSWD:/bin/kill
+edxapp ALL=(ALL) NOPASSWD:/usr/bin/pkill
