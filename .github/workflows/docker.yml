@@ -31,7 +31,8 @@ jobs:
             --tag eoluchile/edx-platform:koa \
             --cache-from "type=local,src=/tmp/.buildx-cache" \
             --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
-            --output "type=image,push=false"
+            --output "type=image,push=false" \
+            --load
 
       - name: Build Open edX Testing version
         run: |
@@ -39,10 +40,10 @@ jobs:
             --file .github/build/Dockerfile \
             --target testing \
             --build-arg EDX_PLATFORM_VERSION=${GITHUB_SHA} \
-            --tag eoluchile/edx-platform:testing-koa
-            --cache-from "type=local,src=/tmp/.buildx-cache" \
-            --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
-            --output "type=image,push=false"
+            --tag eoluchile/edx-platform:testing-koa \
+            --cache-from "type=local,src=/tmp/.buildx-cache-new" \
+            --output "type=image,push=false" \
+            --load
 
       - name: Test eol changes
         run: |
