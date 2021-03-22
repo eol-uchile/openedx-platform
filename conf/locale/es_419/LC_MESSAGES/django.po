@@ -14045,7 +14045,7 @@ msgstr ""
 
 #: lms/templates/preview_menu.html
 msgid "View in Studio"
-msgstr ""
+msgstr "Ver en Studio"
 
 #: lms/templates/preview_menu.html
 msgid "View in Insights"
