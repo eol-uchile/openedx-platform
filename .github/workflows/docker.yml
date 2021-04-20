@@ -41,6 +41,7 @@ jobs:
             --build-arg EDX_PLATFORM_VERSION=${GITHUB_SHA} \
             --tag eoluchile/edx-platform:testing-koa \
             --cache-from "type=local,src=/tmp/.buildx-cache-new" \
+            --cache-from "type=local,src=/tmp/.buildx-cache" \
             --output "type=docker,push=false"
 
       - name: Test eol changes
