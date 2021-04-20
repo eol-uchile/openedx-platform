@@ -17,7 +17,7 @@ jobs:
         id: cache
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-v1
           restore-keys: |
             ${{ runner.os }}-buildx-v1
 
