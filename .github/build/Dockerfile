@@ -30,6 +30,7 @@ RUN curl -L -o /tmp/dockerize.tar.gz https://github.com/jwilder/dockerize/releas
     && rm /tmp/dockerize.tar.gz
 
 # Common requirements
+WORKDIR /openedx/edx-platform
 COPY requirements requirements
 COPY common/lib/sandbox-packages common/lib/sandbox-packages
 COPY common/lib/symmath common/lib/symmath
@@ -48,7 +49,6 @@ RUN python3 -m venv --copies $SANDBOX_ENV \
 
 ## Checkout edx-platform code
 ADD . /openedx/edx-platform
-WORKDIR /openedx/edx-platform
 
 # Install python requirements (clone source repos in a separate dir, otherwise
 # they will be overwritten when we mount edx-platform)
