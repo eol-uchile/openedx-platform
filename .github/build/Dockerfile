@@ -12,7 +12,7 @@ RUN apt update \
     # Our requirements
     mysql-client locales unzip \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /usr/bin/pip
+    && rm -rf /usr/bin/pip \
     && ln -s /usr/bin/pip3 /usr/bin/pip \
     && ln -s /usr/bin/python3 /usr/bin/python
 
