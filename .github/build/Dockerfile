@@ -1,8 +1,5 @@
 FROM ubuntu:focal as base
 
-############ common to lms & cms
-ARG EDX_PLATFORM_VERSION=undefined
-
 # Install system requirements
 RUN apt update \
     # Global requirements
@@ -84,6 +81,8 @@ ENV PATH /openedx/bin:${PATH}
 # the settings files.
 COPY .github/build/settings/lms/*.py ./lms/envs/prod/
 COPY .github/build/settings/cms/*.py ./cms/envs/prod/
+
+ARG EDX_PLATFORM_VERSION=undefined
 RUN mkdir -p /openedx/config ./lms/envs/prod ./cms/envs/prod \
   && echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
 
