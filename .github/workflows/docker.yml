@@ -28,7 +28,7 @@ jobs:
             --target base \
             --build-arg EDX_PLATFORM_VERSION=${GITHUB_SHA} \
             --tag eoluchile/edx-platform:${GITHUB_SHA} \
-            --tag eoluchile/edx-platform:koa \
+            --tag eoluchile/edx-platform:lilac \
             --cache-from "type=local,src=/tmp/.buildx-cache" \
             --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
             --output "type=docker,push=false"
@@ -39,7 +39,7 @@ jobs:
             --file .github/build/Dockerfile \
             --target testing \
             --build-arg EDX_PLATFORM_VERSION=${GITHUB_SHA} \
-            --tag eoluchile/edx-platform:testing-koa \
+            --tag eoluchile/edx-platform:testing-lilac \
             --cache-from "type=local,src=/tmp/.buildx-cache-new" \
             --cache-from "type=local,src=/tmp/.buildx-cache" \
             --output "type=docker,push=false"
@@ -53,13 +53,13 @@ jobs:
           docker-compose run lms /openedx/edx-platform/.github/test/tests.sh lms/djangoapps/bulk_email/tests/ && docker-compose down -v
           docker-compose run lms /openedx/edx-platform/.github/test/tests.sh lms/djangoapps/instructor/tests/ && docker-compose down -v
 
-      - name: Push to koa
-        if: github.ref == 'refs/heads/eol/koa.master'
+      - name: Push to lilac
+        # if: github.ref == 'refs/heads/eol/lilac.master'
         run: |
           echo "${DOCKERHUB_PASSWORD}" | docker login --username ${DOCKERHUB_USER} --password-stdin
           docker push eoluchile/edx-platform:${GITHUB_SHA}
-          docker push eoluchile/edx-platform:koa
-          docker push eoluchile/edx-platform:testing-koa
+          docker push eoluchile/edx-platform:lilac
+          docker push eoluchile/edx-platform:testing-lilac
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

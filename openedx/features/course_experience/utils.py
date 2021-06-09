@@ -16,7 +16,7 @@ from xmodule.modulestore.django import modulestore
 
 
 @request_cached()
-def get_course_outline_block_tree(request, course_id, user=None, allow_start_dates_in_future=False):
+def get_course_outline_block_tree(request, course_id, user=None, allow_start_dates_in_future=False):  # lint-amnesty, pylint: disable=too-many-statements
     """
     Returns the root block of the course outline, with children as blocks.
 
@@ -52,7 +52,7 @@ def get_course_outline_block_tree(request, course_id, user=None, allow_start_dat
         is_scored = block.get('has_score', False) and block.get('weight', 1) > 0
         # Use a list comprehension to force the recursion over all children, rather than just stopping
         # at the first child that is scored.
-        children_scored = any([recurse_mark_scored(child) for child in block.get('children', [])])
+        children_scored = any(recurse_mark_scored(child) for child in block.get('children', []))
         if is_scored or children_scored:
             block['scored'] = True
             return True
@@ -145,6 +145,18 @@ def get_resume_block(block):
     return block
 
 
+def get_start_block(block):
+    """
+    Gets the deepest block to use as the starting block.
+    """
+    if not block.get('children'):
+        return block
+
+    first_child = block['children'][0]
+
+    return get_start_block(first_child)
+
+
 def dates_banner_should_display(course_key, user):
     """
     Return whether or not the reset banner should display,
@@ -170,13 +182,6 @@ def dates_banner_should_display(course_key, user):
 
     # Only display the banner for enrolled users
     if not CourseEnrollment.is_enrolled(user, course_key):
-        return False, False
-
-    # Don't display the banner for course staff
-    is_course_staff = bool(
-        user and course_overview and has_access(user, 'staff', course_overview, course_overview.id)
-    )
-    if is_course_staff:
         return False, False
 
     # Don't display the banner if the course has ended
@@ -208,6 +213,15 @@ def is_block_structure_complete_for_assignments(block_data, block_key):
     children = block_data.get_children(block_key)
     if children:
         return all(is_block_structure_complete_for_assignments(block_data, child_key) for child_key in children)
+
+    category = block_data.get_xblock_field(block_key, 'category')
+    if category in ('course', 'chapter', 'sequential', 'vertical'):
+        # If there are no children for these "hierarchy" block types, just bail. This could be because the
+        # content isn't available yet (start date in future) or we're too late and the block has hide_after_due
+        # set. Or maybe a different transformer cut off content for whatever reason. Regardless of the cause - if the
+        # user can't see this content and we continue, we might accidentally say this block is complete because it
+        # isn't scored (which most hierarchy blocks wouldn't be).
+        return False
 
     complete = block_data.get_xblock_field(block_key, 'complete', False)
     graded = block_data.get_xblock_field(block_key, 'graded', False)
