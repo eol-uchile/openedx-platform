@@ -19,8 +19,6 @@ from openedx.core.djangoapps.user_api.accounts.serializers import AccountUserSer
 from openedx.core.djangoapps.user_authn.utils import generate_password
 from openedx.core.djangolib.oauth2_retirement_utils import retire_dot_oauth2_models
 
-from openedx.core.djangolib.oauth2_retirement_utils import retire_dot_oauth2_models
-
 
 class ManageUserSupportView(View):
     """
