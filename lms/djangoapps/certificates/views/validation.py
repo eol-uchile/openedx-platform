@@ -1,6 +1,6 @@
 from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse
-from edxmako.shortcuts import render_to_response
+from common.djangoapps.edxmako.shortcuts import render_to_response
 from django.template.context_processors import csrf
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from django.shortcuts import redirect
