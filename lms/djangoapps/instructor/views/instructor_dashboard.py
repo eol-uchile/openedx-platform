@@ -628,10 +628,10 @@ def _section_data_download(course, access):
     }
     ######### EOL #############
     try:
-        from xblockcompletion import views
+        from xblockcompletion import views as xc
         section_data['has_xblockcompletion'] = True
-        section_data['xblockcompletion_url_resumen'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'resumen', 'course': six.text_type(course_key)}))
-        section_data['xblockcompletion_url_all'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'all', 'course': six.text_type(course_key)}))
+        section_data['xblockcompletion_url_resumen'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'resumen', 'course': str(course_key)}))
+        section_data['xblockcompletion_url_all'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'all', 'course': str(course_key)}))
     except ImportError:
         section_data['has_xblockcompletion'] = False
     
@@ -639,7 +639,7 @@ def _section_data_download(course, access):
         from gradeucursos import views
         section_data['has_gradeucursos'] = True
         section_data['gradeucursos_url_data'] = reverse('gradeucursos-export:data')
-        section_data['gradeucursos_course'] = six.text_type(course_key)
+        section_data['gradeucursos_course'] = str(course_key)
         section_data['gradeucursos_grade_cutoff'] = views.Content().get_grade_cutoff(course_key)
         section_data['gradeucursos_assig_types'] = views.Content()._get_assignment_types(course_key)
     except ImportError:

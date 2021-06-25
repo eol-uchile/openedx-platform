@@ -341,7 +341,10 @@ class DatesTab(EnrolledTab):
 
         tab_dict['link_func'] = link_func
         super().__init__(tab_dict)
-
+    ### EOL ###
+    @classmethod
+    def is_enabled(cls, course, user=None):
+        return False
 
 def get_course_tab_list(user, course):
     """
