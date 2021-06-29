@@ -628,6 +628,7 @@ def _section_data_download(course, access):
     }
     ######### EOL #############
     try:
+        import urllib
         from xblockcompletion import views as xc
         section_data['has_xblockcompletion'] = True
         section_data['xblockcompletion_url_resumen'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'resumen', 'course': str(course_key)}))
