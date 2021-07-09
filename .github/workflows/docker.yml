@@ -39,7 +39,7 @@ jobs:
             --file .github/build/Dockerfile \
             --target testing \
             --build-arg EDX_PLATFORM_VERSION=${GITHUB_SHA} \
-            --tag eoluchile/edx-platform:testing-lilac \
+            --tag ghcr.io/eol-uchile/edx-platform:testing-lilac \
             --cache-from "type=local,src=/tmp/.buildx-cache-new" \
             --cache-from "type=local,src=/tmp/.buildx-cache" \
             --output "type=docker,push=false"
