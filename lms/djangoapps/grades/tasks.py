@@ -263,9 +263,8 @@ def _has_db_updated_with_new_score(self, scored_block_usage_key, **kwargs):
         score = sub_api.get_score(
             {
                 "student_id": kwargs['anonymous_user_id'],
-                "course_id": six.text_type(scored_block_usage_key.course_key),
-                "item_id": six.text_type(scored_block_usage_key),
-                "item_type": scored_block_usage_key.block_type,
+                "course_id": str(scored_block_usage_key.course_key),
+                "item_id": str(scored_block_usage_key),
             }
         )
         found_modified_time = score['created_at'] if score is not None else None
