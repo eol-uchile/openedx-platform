@@ -1,5 +1,9 @@
 # Changelog EOL
 
+## 01/09/2021 Always show welcome message
+- Comment get_course_tag (openedx/features/course_experience/views/welcome_message.py)
+- Update tests (openedx/features/course_experience/tests/views/test_welcome_message.py)
+
 ## 12/04/2021 Changes on xblock utils
 - Get CMS_BASE from Site Configurations instead of django.conf settings (openedx/core/lib/xblock_utils/__init__.py)
 
