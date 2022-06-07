@@ -7,29 +7,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
 
-      - name: Pull latest cache
-        run: docker pull eoluchile/edx-platform:latest
+      # - name: Pull latest cache
+      #   run: docker pull eoluchile/edx-platform:latest
 
       - name: Build Open edX Base
-        run: docker build . --file .github/build/Dockerfile --target base --tag eoluchile/edx-platform:${GITHUB_SHA} --tag eoluchile/edx-platform:latest
+        run: docker build . --file .github/build/Dockerfile --target base --tag ghcr.io/eol-uchile/edx-platform:${GITHUB_SHA} --tag ghcr.io/eol-uchile/edx-platform:ironwood
 
-      - name: Build Open edX Testing version
-        run: docker build . --file .github/build/Dockerfile --target testing --tag eoluchile/edx-platform:testing
+      # - name: Build Open edX Testing version
+      #   run: docker build . --file .github/build/Dockerfile --target testing --tag eoluchile/edx-platform:testing
 
-      - name: Test eol changes
+      # - name: Test eol changes
+      #   run: |
+      #     cd .github/test
+      #     docker-compose run lms /openedx/edx-platform/.github/test/tests.sh
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: eolito
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Push to ironwood
+        if: github.ref == 'refs/heads/eol/ironwood.test'
         run: |
-          cd .github/test
-          docker-compose run lms /openedx/edx-platform/.github/test/tests.sh
-
-      - name: Push
-        if: github.ref == 'refs/heads/eol/ironwood.master'
-        run: |
-          echo "${DOCKERHUB_PASSWORD}" | docker login --username ${DOCKERHUB_USER} --password-stdin
-          docker push eoluchile/edx-platform:${GITHUB_SHA}
-          docker push eoluchile/edx-platform:latest
-          docker push eoluchile/edx-platform:testing
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          docker push ghcr.io/eol-uchile/edx-platform:${GITHUB_SHA}
+          docker push ghcr.io/eol-uchile/edx-platform:ironwood
