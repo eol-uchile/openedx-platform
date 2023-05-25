@@ -164,7 +164,6 @@ class VideoUploadTestBase:
             if video["edx_video_id"] == edx_video_id
         )
 
-
 class VideoUploadTestMixin(VideoUploadTestBase):
     """
     Test cases for the video upload feature
@@ -254,7 +253,8 @@ class VideoUploadPostTestsMixin:
 
         mock_conn.assert_called_once_with(
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            host=settings.AWS_S3_ENDPOINT_DOMAIN
         )
         self.assertEqual(len(response_obj['files']), len(files))
         self.assertEqual(mock_key.call_count, len(files))
@@ -272,22 +272,29 @@ class VideoUploadPostTestsMixin:
             self.assertIsNotNone(path_match)
             video_id = path_match.group(1)
             mock_key_instance = mock_key_instances[i]
+            #### EOL ####
+            try:
+                import eol_vimeo
+                mock_key_instance.generate_url.assert_called_once_with(
+                    KEY_EXPIRATION_IN_SECONDS,
+                    'PUT'
+                )
+            except ImportError:
+                mock_key_instance.set_metadata.assert_any_call(
+                    'course_video_upload_token',
+                    self.test_token
+                )
 
-            mock_key_instance.set_metadata.assert_any_call(
-                'course_video_upload_token',
-                self.test_token
-            )
-
-            mock_key_instance.set_metadata.assert_any_call(
-                'client_video_id',
-                file_info['file_name']
-            )
-            mock_key_instance.set_metadata.assert_any_call('course_key', str(self.course.id))
-            mock_key_instance.generate_url.assert_called_once_with(
-                KEY_EXPIRATION_IN_SECONDS,
-                'PUT',
-                headers={'Content-Type': file_info['content_type']}
-            )
+                mock_key_instance.set_metadata.assert_any_call(
+                    'client_video_id',
+                    file_info['file_name']
+                )
+                mock_key_instance.set_metadata.assert_any_call('course_key', six.text_type(self.course.id))
+                mock_key_instance.generate_url.assert_called_once_with(
+                    KEY_EXPIRATION_IN_SECONDS,
+                    'PUT',
+                    headers={'Content-Type': file_info['content_type']}
+                )
 
             # Ensure VAL was updated
             val_info = get_video_info(video_id)
@@ -335,6 +342,7 @@ class VideoUploadPostTestsMixin:
 @override_settings(VIDEO_UPLOAD_PIPELINE={
     "VEM_S3_BUCKET": "vem_test_bucket", "BUCKET": "test_bucket", "ROOT_PATH": "test_root"
 })
+@override_settings(AWS_S3_ENDPOINT_DOMAIN='s3.test.com')
 class VideosHandlerTestCase(VideoUploadTestMixin, VideoUploadPostTestsMixin, CourseTestCase):
     """Test cases for the main video upload endpoint"""
 
@@ -568,7 +576,8 @@ class VideosHandlerTestCase(VideoUploadTestMixin, VideoUploadPostTestsMixin, Cou
         mock_conn.assert_called_once_with(
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            security_token=settings.AWS_SECURITY_TOKEN
+            security_token=settings.AWS_SECURITY_TOKEN,
+            host=settings.AWS_S3_ENDPOINT_DOMAIN
         )
 
     @patch('boto.s3.key.Key')
@@ -660,12 +669,15 @@ class VideosHandlerTestCase(VideoUploadTestMixin, VideoUploadPostTestsMixin, Cou
                     content_type='application/json'
                 )
                 self.assertEqual(response.status_code, 200)
-
-                with proxy_manager(self.assertRaises(AssertionError), data['expect_token']):
-                    # if we're not expecting token then following should raise assertion error and
-                    # if we're expecting token then we will be able to find the call to set the token
-                    # in s3 metadata.
-                    mock_key_instance.set_metadata.assert_any_call(*expected_args)
+                #### EOL ####
+                try:
+                    import eol_vimeo
+                except ImportError:
+                    with proxy_manager(self.assertRaises(AssertionError), data['expect_token']):
+                        # if we're not expecting token then following should raise assertion error and
+                        # if we're expecting token then we will be able to find the call to set the token
+                        # in s3 metadata.
+                        mock_key_instance.set_metadata.assert_any_call(*expected_args)
 
     def _assert_video_removal(self, url, edx_video_id, deleted_videos):
         """
@@ -848,6 +860,7 @@ class VideosHandlerTestCase(VideoUploadTestMixin, VideoUploadPostTestsMixin, Cou
 @override_settings(VIDEO_UPLOAD_PIPELINE={
     "VEM_S3_BUCKET": "vem_test_bucket", "BUCKET": "test_bucket", "ROOT_PATH": "test_root"
 })
+@override_settings(AWS_S3_ENDPOINT_DOMAIN='s3.test.com')
 class GenerateVideoUploadLinkTestCase(VideoUploadTestBase, VideoUploadPostTestsMixin, CourseTestCase):
     """
     Test cases for the main video upload endpoint
@@ -872,6 +885,7 @@ class GenerateVideoUploadLinkTestCase(VideoUploadTestBase, VideoUploadPostTestsM
 @ddt.ddt
 @patch.dict('django.conf.settings.FEATURES', {'ENABLE_VIDEO_UPLOAD_PIPELINE': True})
 @override_settings(VIDEO_UPLOAD_PIPELINE={'BUCKET': 'test_bucket', 'ROOT_PATH': 'test_root'})
+@override_settings(AWS_S3_ENDPOINT_DOMAIN='s3.test.com')
 class VideoImageTestCase(VideoUploadTestBase, CourseTestCase):
     """
     Tests for video image.
@@ -1166,6 +1180,7 @@ class VideoImageTestCase(VideoUploadTestBase, CourseTestCase):
     Mock(return_value=True)
 )
 @patch.dict('django.conf.settings.FEATURES', {'ENABLE_VIDEO_UPLOAD_PIPELINE': True})
+@override_settings(AWS_S3_ENDPOINT_DOMAIN='s3.test.com')
 class TranscriptPreferencesTestCase(VideoUploadTestBase, CourseTestCase):
     """
     Tests for video transcripts preferences.
@@ -1466,19 +1481,23 @@ class TranscriptPreferencesTestCase(VideoUploadTestBase, CourseTestCase):
             response = self.client.post(videos_handler_url, json.dumps(request_data), content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
-
-        # Ensure `transcript_preferences` was set up in Key correctly if sent through request.
-        if is_video_transcript_enabled and transcript_preferences:
-            mock_key_instance.set_metadata.assert_any_call('transcript_preferences', json.dumps(transcript_preferences))
-        else:
-            with self.assertRaises(AssertionError):
-                mock_key_instance.set_metadata.assert_any_call(
-                    'transcript_preferences', json.dumps(transcript_preferences)
-                )
+        #### EOL ####
+        try:
+            import eol_vimeo
+        except ImportError:
+            # Ensure `transcript_preferences` was set up in Key correctly if sent through request.
+            if is_video_transcript_enabled and transcript_preferences:
+                mock_key_instance.set_metadata.assert_any_call('transcript_preferences', json.dumps(transcript_preferences))
+            else:
+                with self.assertRaises(AssertionError):
+                    mock_key_instance.set_metadata.assert_any_call(
+                        'transcript_preferences', json.dumps(transcript_preferences)
+                    )
 
 
 @patch.dict("django.conf.settings.FEATURES", {"ENABLE_VIDEO_UPLOAD_PIPELINE": True})
 @override_settings(VIDEO_UPLOAD_PIPELINE={"BUCKET": "test_bucket", "ROOT_PATH": "test_root"})
+@override_settings(AWS_S3_ENDPOINT_DOMAIN='s3.test.com')
 class VideoUrlsCsvTestCase(VideoUploadTestMixin, CourseTestCase):
     """Test cases for the CSV download endpoint for video uploads"""
 

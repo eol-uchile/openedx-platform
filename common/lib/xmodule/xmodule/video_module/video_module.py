@@ -366,7 +366,16 @@ class VideoBlock(
         settings_service = self.runtime.service(self, 'settings')  # lint-amnesty, pylint: disable=unused-variable
 
         poster = None
-        if edxval_api and self.edx_video_id:
+        try:
+            if self.edx_video_id:
+                from eol_vimeo.models import EolVimeoVideo
+                video_vimeo = EolVimeoVideo.objects.get(edx_video_id=self.edx_video_id.strip(), course_key=self.course_id)
+                poster = video_vimeo.url_picture
+        except EolVimeoVideo.DoesNotExist:
+            log.info('EolVimeo - Video id does not exist, edx_video_id: {}'.format(self.edx_video_id.strip()))
+        except ImportError:
+            log.error('EolVimeo - Import Error')
+        if not poster and edxval_api and self.edx_video_id:
             poster = edxval_api.get_course_video_image_url(
                 course_id=self.runtime.course_id.for_branch(None),
                 edx_video_id=self.edx_video_id.strip()
@@ -852,9 +861,32 @@ class VideoBlock(
             'video_url': video_url,
             'edx_video_id': video_id
         }
-
         _context.update({'transcripts_basic_tab_metadata': metadata})
+        #### EOL ####
+        eol_videolist = self.get_eol_videos_vimeo(self.course_id)
+        _context['eol_videolist'] = {'data': eol_videolist, 'edx_video_id': self.edx_video_id}
+        _context['course_id'] = str(self.course_id)
+        #### EOL END ####
         return _context
+
+    def get_eol_videos_vimeo(self, course_key):
+        """
+            EOL: Get a list of vimeo videos, only with status vimeo_encoding and upload_completed
+        """
+        try:
+            from eol_vimeo.models import EolVimeoVideo
+            from eol_vimeo.vimeo_utils import update_video_vimeo
+            from edxval.api import _get_video
+            update_video_vimeo(str(course_key))
+            video_list = []
+            vimeo_list = EolVimeoVideo.objects.filter(course_key=course_key, status__in=['upload_completed', 'upload_completed_encoding']).values('edx_video_id')
+            for video in vimeo_list:
+                aux = _get_video(video['edx_video_id'])
+                video_list.append({'edx_video_id': video['edx_video_id'], 'display_name': aux.client_video_id})
+            return video_list
+        except ImportError as e:
+            log.error('EolVimeo - Error to import EolVimeoVideo or edxval.api._get_video, exception: {}'.format(str(e)))
+            return []
 
     @classmethod
     def _parse_youtube(cls, data):

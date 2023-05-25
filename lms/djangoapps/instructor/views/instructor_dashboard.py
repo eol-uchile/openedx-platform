@@ -9,6 +9,7 @@ import uuid
 from functools import reduce
 from unittest.mock import patch
 
+import json
 import pytz
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -176,7 +177,6 @@ def instructor_dashboard_2(request, course_id):  # lint-amnesty, pylint: disable
     # Gate access to course email by feature flag & by course-specific authorization
     if is_bulk_email_feature_enabled(course_key) and (access['staff'] or access['instructor']):
         sections.append(_section_send_email(course, access))
-
     # Gate access to Special Exam tab depending if either timed exams or proctored exams
     # are enabled in the course
 
@@ -628,6 +628,13 @@ def _section_data_download(course, access):
     }
     ######### EOL #############
     try:
+        from eol_report_analytics import views
+        section_data['has_eol_report_analytics'] = True
+        section_data['eol_report_analytics_url'] = '{}?{}'.format(reverse('eol_report_analytics:data'), urllib.parse.urlencode({'course': str(course_key)}))
+    except ImportError:
+        section_data['has_eol_report_analytics'] = False
+
+    try:
         from xblockcompletion import views
         section_data['has_xblockcompletion'] = True
         section_data['xblockcompletion_url_resumen'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'resumen', 'course': six.text_type(course_key)}))
@@ -644,6 +651,13 @@ def _section_data_download(course, access):
         section_data['gradeucursos_assig_types'] = views.Content()._get_assignment_types(course_key)
     except ImportError:
         section_data['has_gradeucursos'] = False
+    
+    try:
+        from eolreportcertificate import views
+        section_data['has_eolreportcertificate'] = True
+        section_data['eolreportcertificate_url'] = '{}?{}'.format(reverse('eolreportcertificate-export:data'), urllib.parse.urlencode({'course': six.text_type(course_key)}))
+    except ImportError:
+        section_data['has_eolreportcertificate'] = False
     ######### EOL #############
     if not access.get('data_researcher'):
         section_data['is_hidden'] = True
@@ -706,6 +720,17 @@ def _section_send_email(course, access):
             'list_email_content', kwargs={'course_id': str(course_key)}
         ),
     }
+    ## EOL
+    try:
+        from welcome_mail.models import WelcomeMail
+        section_data['welcome_data'] = '{}'
+        section_data['welcome-mail-save'] = reverse('welcome-mail:save', kwargs={'course_id': str(course_key)})
+        if WelcomeMail.objects.filter(course_key=course_key).exists():
+            mail = WelcomeMail.objects.get(course_key=course_key)
+            section_data['welcome_data'] = json.dumps({'subject':mail.subject, 'message':mail.html_message, 'is_active':mail.is_active})
+    except ImportError:
+        log.error('WelcomeMail - App doesnt installed')
+    ## END EOL
     return section_data
 
 

@@ -10,7 +10,13 @@ services:
     restart: unless-stopped
 
   lms:
-    image: eoluchile/edx-platform:testing-koa
+    image: eoluchile/edx-platform:testing-lilac
+    depends_on:
+      - memcached
+      - mongodb
+
+  cms:
+    image: eoluchile/edx-platform:testing-lilac
     depends_on:
       - memcached
       - mongodb

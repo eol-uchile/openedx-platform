@@ -9,6 +9,8 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytz
+import re
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
@@ -146,6 +148,7 @@ def _update_certificate_context(context, course, user_certificate, platform_name
         context['certificate_type_description'] = certificate_type_description
 
     # EOL
+    context['eol_certificate_date'] = date
     grade_cutoff = min(course.grade_cutoffs.values())  # Get the min value
     try:
         grade_percent = float(user_certificate.grade)
@@ -315,11 +318,15 @@ def _update_context_with_user_info(context, user, user_certificate):
     """
     Updates context dictionary with user related info.
     """
-    user_fullname = user_certificate.name if user_certificate.name else user.profile.name # EOL
+    # EOL
+    user_fullname = user_certificate.name if user_certificate.name else user.profile.name
+    user_eol_rut = get_user_rut(user)
+    # END EOL
     context['username'] = user.username
     context['course_mode'] = user_certificate.mode
     context['accomplishment_user_id'] = user.id
     context['accomplishment_copy_name'] = user_fullname
+    context['user_eol_rut'] = user_eol_rut
     context['accomplishment_copy_username'] = user.username
 
     context['accomplishment_more_title'] = _("More Information About {user_name}'s Certificate:").format(
@@ -340,6 +347,17 @@ def _update_context_with_user_info(context, user, user_certificate):
         fullname=user_fullname
     )
 
+def get_user_rut(user):
+    try:
+        user_eol_rut = user.edxloginuser.run if user.edxloginuser.run else ''
+    except AttributeError:
+        user_eol_rut = ''
+    if user_eol_rut == '' or user_eol_rut[0].isalpha():
+        return user_eol_rut
+    aux_rut = str(int(user_eol_rut[:-1]))
+    rut_dv = user_eol_rut[-1].upper()
+    rut = re.sub(r'(?<!^)(?=(\d{3})+$)', r'.', aux_rut)
+    return "{}-{}".format(rut, rut_dv)
 
 def _get_user_certificate(request, user, course_key, course, preview_mode=None):
     """

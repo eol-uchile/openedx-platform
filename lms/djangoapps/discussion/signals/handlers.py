@@ -14,7 +14,7 @@ from openedx.core.djangoapps.django_comment_common import signals
 from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
 from openedx.core.djangoapps.theming.helpers import get_current_site
 from xmodule.modulestore.django import SignalHandler
-
+from django.db import transaction
 log = logging.getLogger(__name__)
 
 
@@ -41,7 +41,21 @@ def update_discussions_on_course_publish(sender, course_key, **kwargs):  # pylin
 
 
 @receiver(signals.comment_created)
-def send_discussion_email_notification(sender, user, post, **kwargs):  # lint-amnesty, pylint: disable=missing-function-docstring, unused-argument
+def send_discussion_email_notification(sender, user, post, **kwargs):
+    ### EOL ###
+    with transaction.atomic():
+        try:
+            from eol_forum_notifications.models import EolForumNotificationsDiscussions
+            discussion = EolForumNotificationsDiscussions.objects.get(discussion_id=post.thread.commentable_id, course_id=post.thread.course_id)
+            discussion.daily_comment += 1
+            discussion.weekly_comment += 1
+            discussion.save()
+        except Exception as e:
+            log.info("EolForumNotifications - Error to increment comment count. discussion_id: {}, course: {}, error: {}".format(
+                post.thread.commentable_id,
+                post.thread.course_id,
+                str(e)))
+    ### END EOL ###
     current_site = get_current_site()
     if current_site is None:
         log.info('Discussion: No current site, not sending notification about post: %s.', post.id)
@@ -59,6 +73,23 @@ def send_discussion_email_notification(sender, user, post, **kwargs):  # lint-am
 
     send_message(post, current_site)
 
+@receiver(signals.thread_created)
+def eol_thread_created(sender, user, post, **kwargs):
+    ### EOL ###
+    with transaction.atomic():
+        try:
+            from eol_forum_notifications.models import EolForumNotificationsDiscussions
+            discussion = EolForumNotificationsDiscussions.objects.get(discussion_id=post.commentable_id, course_id=post.course_id)
+            discussion.daily_threads += 1
+            discussion.weekly_threads += 1
+            discussion.save()
+        except Exception as e:
+            log.info("EolForumNotifications - Error to increment comment count. discussion_id: {}, course: {}, error: {}".format(
+                post.commentable_id,
+                post.course_id,
+                str(e)))
+        ### END EOL ###
+    return
 
 def send_message(comment, site):  # lint-amnesty, pylint: disable=missing-function-docstring
     thread = comment.thread
