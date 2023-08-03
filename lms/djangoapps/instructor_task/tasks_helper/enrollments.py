@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from time import time
 from pytz import UTC
+from django.conf import settings
 from lms.djangoapps.instructor_analytics.basic import enrolled_students_features, list_may_enroll
 from lms.djangoapps.instructor_analytics.csvs import format_dictlist
 from common.djangoapps.student.models import CourseEnrollment  # lint-amnesty, pylint: disable=unused-import
