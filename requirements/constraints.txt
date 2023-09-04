@@ -12,7 +12,7 @@
 celery<5.0
 
 # Stay on the latest LTS release of Django
-Django<2.3
+Django<3.2.21
 
 # The CORS_ORIGIN_WHITELIST changes in a backwards incompatible way in 3.0.0, needs matching configuration repo changes
 django-cors-headers<3.0.0
