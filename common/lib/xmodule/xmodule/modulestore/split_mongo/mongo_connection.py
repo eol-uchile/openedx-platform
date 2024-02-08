@@ -263,8 +263,9 @@ class CourseStructureCache(object):
             compressed_pickled_data = zlib.compress(pickled_data, 1)
             tagger.measure('compressed_size', len(compressed_pickled_data))
 
-            # Stuctures are immutable, so we set a timeout of "never"
-            self.cache.set(key, compressed_pickled_data, None)
+            # We rely on the course structure cache default timeout, which should be
+            # high by default (~ a few days).
+            self.cache.set(key, compressed_pickled_data)
 
 
 class MongoConnection(object):

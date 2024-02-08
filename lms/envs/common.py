@@ -807,7 +807,7 @@ CACHES = {
         'KEY_PREFIX': 'course_structure',
         'KEY_FUNCTION': 'common.djangoapps.util.memcache.safe_key',
         'LOCATION': ['localhost:11211'],
-        'TIMEOUT': '7200',
+        'TIMEOUT': '604800',  # 1 week
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
     },
     'celery': {
