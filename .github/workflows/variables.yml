@@ -41,6 +41,8 @@ jobs:
               return "${{ github.ref }}".replace(/^refs\/heads\/(eol|openuchile|vlabx)-release\/(\w+)(\.master)?$/,'$2')
             } else if ( "${{ github.event.pull_request.base.ref }}".match(/^refs\/heads\/(eol|openuchile|vlabx)\/(\w+)(\.master)?$/) ) { // pr to development branch case
               return "${{ github.event.pull_request.base.ref }}".replace(/^refs\/heads\/(eol|openuchile|vlabx)\/(\w+)(\.master)?$/,'$2')
+            } else if ( "${{ github.event.pull_request.base.ref }}".match(/^refs\/heads\/(eol|openuchile|vlabx)-release\/(\w+)(\.master)?$/) ) { // pr to production branch case
+              return "${{ github.event.pull_request.base.ref }}".replace(/^refs\/heads\/(eol|openuchile|vlabx)-release\/(\w+)(\.master)?$/,'$2')
             } else throw 'No version'
 
       - name: Obtain release project
