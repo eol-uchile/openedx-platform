@@ -14,6 +14,12 @@ on:
       code:
         description: "Code of the EOL project taken from the project name"
         value: ${{ jobs.variables.outputs.CODE }}
+      is-release:
+        description: "Flag to indicate if the branch is a production branch"
+        value: ${{ jobs.variables.outputs.IS-RELEASE }}
+      is-pr:
+        description: "Flag to indicate if the workflow is part of a pull request"
+        value: ${{ jobs.variables.outputs.IS-PR }}
 
 jobs:
   variables:
@@ -74,13 +80,35 @@ jobs:
               return "vl"
             } else throw 'No code'
 
+      - name: Define production release flag
+        id: is_release
+        uses: actions/script@v7
+        with:
+          result-encoding: string
+          script: |
+            if ( "${{ github.ref }}".match(/^refs\/heads\/(eol|openuchile|vlabx)-release\/(\w+)(\.master)?$/) ) { // push to production branch case
+              return true
+            } else return false
+
+      - name: Define pull request flag
+        id: is_pr
+        uses: actions/script@v7
+        with:
+          result-encoding: string
+          script: |
+            if ( "${{ github.event.pull_request.base.ref }}".match(/^(eol|openuchile|vlabx)(-release)?\/(\w+)(\.master)?$/) ) { // pr to image generation branch case
+              return true
+            } else return false
+
       - name: Print variables
         run: |
           echo TS=${{ steps.ts.outputs.TS }}
           echo RELEASE-NAME=${{ steps.release.outputs.result }}
           echo PROJECT=${{ steps.project.outputs.result }}
           echo CODE=${{ steps.code.outputs.result }}
+          echo IS-RELEASE=${{ steps.is_release.outputs.result }}
+          echo IS-PR=${{ steps.is_pr.outputs.result }}
 
       - name: Fail on empty values
-        if: steps.ts.outputs.TS == '' || steps.release.outputs.result == '' || steps.project.outputs.result == '' || steps.code.outputs.result == ''
+        if: ${{ steps.ts.outputs.TS == '' || steps.release.outputs.result == '' || steps.project.outputs.result == '' || steps.code.outputs.result == '' }}
         run: exit 1
