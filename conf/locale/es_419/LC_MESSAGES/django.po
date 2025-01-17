@@ -4748,7 +4748,7 @@ msgid ""
 "This subsection is unlocked for learners when they meet the prerequisite "
 "requirements."
 msgstr ""
-"Esta subsección está desbloqueada para que los estudiantes que hayan "
+"Esta subsección está desbloqueada para los estudiantes que hayan "
 "cumplido el prerrequisito."
 
 #: common/lib/xmodule/xmodule/seq_module.py
@@ -5473,7 +5473,7 @@ msgstr ""
 #: common/templates/student/edx_ace/accountrecovery/email/body.txt
 #: openedx/core/djangoapps/user_authn/templates/user_authn/edx_ace/passwordreset/email/body.txt
 msgid "Thanks for using our site!"
-msgstr "Gracias por usar el sitio!"
+msgstr "¡Gracias por usar el sitio!"
 
 #: common/templates/student/edx_ace/accountrecovery/email/body.txt
 #: openedx/core/djangoapps/user_authn/templates/user_authn/edx_ace/passwordreset/email/body.txt
@@ -6265,7 +6265,7 @@ msgstr "Más información acerca del cerfificado de {user_name}:"
 #: lms/djangoapps/certificates/views/webview.py
 #, python-brace-format
 msgid "{fullname}, you earned a certificate!"
-msgstr "{fullname}, usted ha ganado un certificado!"
+msgstr "¡{fullname}, usted ha ganado un certificado!"
 
 #. Translators: This line congratulates the user and instructs them to share
 #. their accomplishment on social networks
@@ -6274,7 +6274,7 @@ msgid ""
 "Congratulations! This page summarizes what you accomplished. Show it off to "
 "family, friends, and colleagues in your social and professional networks."
 msgstr ""
-"Felicidades! Esta página resume los logros que ha alcanzado. Puede "
+"¡Felicidades! Esta página resume los logros que ha alcanzado. Puede "
 "compartirlo con familia, amigos, colegas en sus redes sociales y "
 "profesionales."
 
@@ -6519,7 +6519,7 @@ msgstr "Inicio del Curso"
 
 #: lms/djangoapps/courseware/date_summary.py
 msgid "Don't forget to add a calendar reminder!"
-msgstr "No olvide añadir un recordatorio a su calendario!"
+msgstr "¡No olvide añadir un recordatorio a su calendario!"
 
 #: lms/djangoapps/courseware/date_summary.py
 #, python-brace-format
@@ -6621,7 +6621,7 @@ msgstr ""
 
 #: lms/djangoapps/courseware/date_summary.py
 msgid ""
-"You are still eligible to upgrade to a Verified Certificate! Pursue it to "
+"¡You are still eligible to upgrade to a Verified Certificate! Pursue it to "
 "highlight the knowledge and skills you gain in this course."
 msgstr ""
 "Usted todavía es elegible para cambiar a la opción de Certificado "
@@ -10747,7 +10747,7 @@ msgstr " Antes de %(filter_title)s "
 #: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/instructorledcourseupdate/email/body.html
 #, python-format
 msgid "Welcome to week %(week_num)s of %(course_name)s!"
-msgstr "Bienvenido/a a la semana %(week_num)s de %(course_name)s!"
+msgstr "¡Bienvenido/a a la semana %(week_num)s de %(course_name)s!"
 
 #: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/courseupdate/email/body.html
 #, python-brace-format
