@@ -1,4 +1,4 @@
-FROM ubuntu:focal as base
+FROM ubuntu:focal AS base
 
 ############ common to lms & cms
 ARG EDX_PLATFORM_VERSION=undefined
@@ -112,7 +112,7 @@ ENTRYPOINT ["docker-entrypoint.sh"]
 EXPOSE 8000
 CMD gunicorn --name ${SERVICE_VARIANT} --workers ${WORKER_COUNT:-1} --max-requests-jitter=50 --bind=0.0.0.0:8000 --max-requests=${MAX_REQUESTS:-1000} --preload ${SERVICE_VARIANT}.wsgi:application
 
-FROM base as testing
+FROM base AS testing
 
 # Install testing packages
 RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-platform/requirements/edx/development.txt > /tmp/requirements.txt \
