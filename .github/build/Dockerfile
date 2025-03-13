@@ -101,10 +101,6 @@ RUN openedx-assets xmodule \
     && openedx-assets webpack --env=prod \
     && openedx-assets common
 
-# service variant is "lms" or "cms"
-ENV SERVICE_VARIANT lms
-ENV SETTINGS prod.production
-
 # Entrypoint will fix permissions of all files and run commands as openedx
 ENTRYPOINT ["docker-entrypoint.sh"]
 
