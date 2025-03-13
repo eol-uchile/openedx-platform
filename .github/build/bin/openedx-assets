@@ -54,6 +54,7 @@ def main():
     collect = subparsers.add_parser('collect', help="Collect static assets to be served by webserver")
     collect.add_argument('-s', '--settings', default=os.environ.get('SETTINGS'), help="Django settings module")
     collect.add_argument('--systems', nargs='+', choices=['lms', 'cms'], default=['lms', 'cms'], help="Limit collection to lms or cms")
+    collect.add_argument('-r', '--static-root', default=DEFAULT_STATIC_ROOT)
     collect.set_defaults(func=run_collect)
 
     watch_themes = subparsers.add_parser('watch-themes', help="Watch theme assets for changes and recompile on-the-fly")
@@ -105,6 +106,8 @@ def run_themes(args):
                     assets._compile_sass(system, Path(theme_path), False, False, [])
 
 def run_collect(args):
+    os.environ['STATIC_ROOT_LMS'] = args.static_root
+    os.environ['STATIC_ROOT_CMS'] = os.path.join(args.static_root, 'studio')
     assets.collect_assets(args.systems, args.settings)
 
 def run_watch_themes(args):
