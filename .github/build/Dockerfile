@@ -1,4 +1,4 @@
-FROM ubuntu:focal as base
+FROM ubuntu:focal AS base
 
 ############ common to lms & cms
 ARG EDX_PLATFORM_VERSION=undefined
@@ -57,9 +57,9 @@ ADD . /openedx/edx-platform
 # Also update boto from 2.39.0 to 2.49.0 as it has an exception on python3
 # Finally, install a compatibility layer for s3 (VIDEO_TRANSCRIPTS_SETTINGS save has an ASCII error on data)
 ENV NO_PYTHON_UNINSTALL 1
-RUN pip install pip==20.3.4 \
-  && pip install --src ../venv/src -r requirements/edx/base.txt \
-  && pip install boto==2.49.0
+RUN pip install pip==20.3.4
+RUN pip install --src ../venv/src -r requirements/edx/base.txt
+RUN pip install boto==2.49.0
 
 # Manually update pytz (Timezones)
 RUN pip install pytz --upgrade
@@ -81,29 +81,13 @@ ENV PATH /openedx/bin:${PATH}
 # the settings files.
 COPY .github/build/settings/lms/*.py ./lms/envs/prod/
 COPY .github/build/settings/cms/*.py ./cms/envs/prod/
-RUN mkdir -p /openedx/config ./lms/envs/prod ./cms/envs/prod \
-  && echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
+RUN mkdir -p /openedx/config ./lms/envs/prod ./cms/envs/prod
+RUN echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
 
 ENV CONFIG_ROOT /openedx/config
 ENV LMS_CFG /openedx/config/lms.yml
 ENV STUDIO_CFG /openedx/config/cms.yml
 ENV REVISION_CFG /openedx/config/revision.yml
-
-# Collect production assets. By default, only assets from the default theme
-# will be processed. This makes the docker image lighter and faster to build.
-# Only the custom themes added to /openedx/themes will be compiled.
-# Here, we don't run "paver update_assets" which is slow, compiles all themes
-# and requires a complex settings file. Instead, we decompose the commands
-# and run each one individually to collect the production static assets to
-# /openedx/staticfiles.
-RUN openedx-assets xmodule \
-    && openedx-assets npm \
-    && openedx-assets webpack --env=prod \
-    && openedx-assets common
-
-# service variant is "lms" or "cms"
-ENV SERVICE_VARIANT lms
-ENV SETTINGS prod.production
 
 # Entrypoint will fix permissions of all files and run commands as openedx
 ENTRYPOINT ["docker-entrypoint.sh"]
@@ -112,10 +96,10 @@ ENTRYPOINT ["docker-entrypoint.sh"]
 EXPOSE 8000
 CMD gunicorn --name ${SERVICE_VARIANT} --workers ${WORKER_COUNT:-1} --max-requests-jitter=50 --bind=0.0.0.0:8000 --max-requests=${MAX_REQUESTS:-1000} --preload ${SERVICE_VARIANT}.wsgi:application
 
-FROM base as testing
+FROM base AS testing
 
 # Install testing packages
-RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-platform/requirements/edx/development.txt > /tmp/requirements.txt \
-    && pip install -r /tmp/requirements.txt \
-    && pip install boto==2.49.0 \
-    && rm /tmp/requirements.txt
+RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-platform/requirements/edx/development.txt > /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+RUN pip install boto==2.49.0
+RUN rm /tmp/requirements.txt
