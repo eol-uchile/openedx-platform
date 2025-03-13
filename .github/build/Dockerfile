@@ -57,9 +57,9 @@ ADD . /openedx/edx-platform
 # Also update boto from 2.39.0 to 2.49.0 as it has an exception on python3
 # Finally, install a compatibility layer for s3 (VIDEO_TRANSCRIPTS_SETTINGS save has an ASCII error on data)
 ENV NO_PYTHON_UNINSTALL 1
-RUN pip install pip==20.3.4 \
-  && pip install --src ../venv/src -r requirements/edx/base.txt \
-  && pip install boto==2.49.0
+RUN pip install pip==20.3.4
+RUN pip install --src ../venv/src -r requirements/edx/base.txt
+RUN pip install boto==2.49.0
 
 # Manually update pytz (Timezones)
 RUN pip install pytz --upgrade
@@ -81,8 +81,8 @@ ENV PATH /openedx/bin:${PATH}
 # the settings files.
 COPY .github/build/settings/lms/*.py ./lms/envs/prod/
 COPY .github/build/settings/cms/*.py ./cms/envs/prod/
-RUN mkdir -p /openedx/config ./lms/envs/prod ./cms/envs/prod \
-  && echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
+RUN mkdir -p /openedx/config ./lms/envs/prod ./cms/envs/prod
+RUN echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
 
 ENV CONFIG_ROOT /openedx/config
 ENV LMS_CFG /openedx/config/lms.yml
@@ -115,7 +115,7 @@ CMD gunicorn --name ${SERVICE_VARIANT} --workers ${WORKER_COUNT:-1} --max-reques
 FROM base AS testing
 
 # Install testing packages
-RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-platform/requirements/edx/development.txt > /tmp/requirements.txt \
-    && pip install -r /tmp/requirements.txt \
-    && pip install boto==2.49.0 \
-    && rm /tmp/requirements.txt
+RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-platform/requirements/edx/development.txt > /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+RUN pip install boto==2.49.0
+RUN rm /tmp/requirements.txt
