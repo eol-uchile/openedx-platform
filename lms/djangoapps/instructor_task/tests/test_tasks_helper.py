@@ -1269,19 +1269,15 @@ class TestStudentReport(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'attempted': num_students, 'succeeded': num_students, 'failed': 0}, result)
 
     ################ EOL ###############################################
+    @patch('lms.djangoapps.instructor_analytics.basic.get_user_id_doc_id_pairs')
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)
-    def test_users_with_run(self):
+    def test_users_with_run(self, mock_user_id_doc_id_pairs):
         """
         Test uchileedxlogin users
         """
-        try:
-            from unittest.case import SkipTest
-            from uchileedxlogin.models import EdxLoginUser
-        except ImportError:
-            self.skipTest("import error uchileedxlogin")
-
         aux_student = self.create_student(username="student1", email='student1@example.com')
-        EdxLoginUser.objects.create(user=aux_student, run='000000001K')
+        aux_student_doc_id = '000000001K'
+        mock_user_id_doc_id_pairs.return_value = [(aux_student.id, aux_student_doc_id)]
 
         self.current_task = Mock()
         self.current_task.update_state = Mock()
@@ -1300,7 +1296,7 @@ class TestStudentReport(TestReportMixin, InstructorTaskCourseTestCase):
                 [
                     {
                         u'id': unicode(aux_student.id),
-                        u'run': '000000001K',
+                        u'run': aux_student_doc_id,
                         u'email': aux_student.email,
                         u'username': aux_student.username,
                     },
@@ -1840,17 +1836,13 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
                     self.assertFalse(mock_course_blocks.called)
 
     ################ EOL ###############################################
+    @patch('lms.djangoapps.instructor_task.task_helper.grades.get_user_id_doc_id_pairs')
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)            
-    def test_grade_report_with_run(self):
-        try:
-            from unittest.case import SkipTest
-            from uchileedxlogin.models import EdxLoginUser
-        except ImportError:
-            self.skipTest("import error uchileedxlogin")
+    def test_grade_report_with_run(self, mock_user_id_doc_id_pairs):
             
         self.submit_student_answer(self.student.username, u'Problem1', ['Option 1'])  
 
-        EdxLoginUser.objects.create(user=self.student, run='009472337K')
+        mock_user_id_doc_id_pairs.return_value = [(self.student.id, '009472337K')]
         with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
             result = CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
 

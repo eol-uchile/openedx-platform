@@ -18,6 +18,7 @@ from opaque_keys.edx.keys import UsageKey
 from pytz import UTC
 from six import text_type
 from six.moves import zip, zip_longest
+from uchileedxlogin.services.interface import get_user_id_doc_id_pairs
 
 from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.certificates.models import CertificateWhitelist, GeneratedCertificate, certificate_info_for_user
@@ -693,12 +694,10 @@ class CourseGradeReport(object):
         """
         Returns a list of rows for the given users for this report.
         """
-        user_runs= {}
         if settings.UCHILEEDXLOGIN_TASK_RUN_ENABLE:
-            from uchileedxlogin.models import EdxLoginUser
-            edxlogin_user = EdxLoginUser.objects.all().values('user_id','run')
-            for x in edxlogin_user:
-                user_runs[x['user_id']] = x['run']
+            user_id_list = users.values_list('id', flat=True)
+            user_doc_id = get_user_id_doc_id_pairs(user_id_list)
+            user_doc_id_dict = {id: doc_id for id, doc_id in user_doc_id}
 
         with modulestore().bulk_operations(context.course_id):
             bulk_context = _CourseGradeBulkContext(context, users)
@@ -717,10 +716,8 @@ class CourseGradeReport(object):
                     aux = [user.id, user.email, user.username]
                     ########### EOL ##########################
                     if settings.UCHILEEDXLOGIN_TASK_RUN_ENABLE:
-                        if user.id in user_runs:
-                            aux = [user.id, user_runs[user.id], user.email, user.username]
-                        else:
-                            aux = [user.id, "", user.email, user.username]
+                        user_doc_id = user_doc_id_dict.get(user['id'], '')
+                        aux = [user.id, user_doc_id, user.email, user.username]
                     ###########################################
 
                     success_rows.append(
