@@ -10,7 +10,6 @@ from uuid import uuid4
 
 import six
 import pytz
-import re
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -90,16 +89,6 @@ def get_certificate_description(mode, certificate_type, platform_name):
                                          u"the student's identity.").format(cert_type=certificate_type)
     return certificate_type_description
 
-def grade_percent_scaled(grade_percent, grade_cutoff):
-    """
-        EOL: Scale grade percent by grade cutoff. Grade between 1.0 - 7.0
-    """
-    if grade_percent == 0.:
-        return 1.
-    if grade_percent < grade_cutoff:
-        return round(10. * (3. / grade_cutoff * grade_percent + 1.)) / 10.
-    return round((3. / (1. - grade_cutoff) * grade_percent + (7. - (3. / (1. - grade_cutoff)))) * 10.) / 10.
-
 
 def _update_certificate_context(context, course, user_certificate, platform_name):
     """
@@ -152,18 +141,6 @@ def _update_certificate_context(context, course, user_certificate, platform_name
     certificate_type_description = get_certificate_description(user_certificate.mode, certificate_type, platform_name)
     if certificate_type_description:
         context['certificate_type_description'] = certificate_type_description
-
-    # EOL
-    context['eol_certificate_date'] = date
-    grade_cutoff = min(course.grade_cutoffs.values())  # Get the min value
-    try:
-        grade_percent = float(user_certificate.grade)
-    except ValueError:
-        grade_percent = 0.0
-    context['eol_grade'] = grade_percent_scaled(grade_percent, grade_cutoff)
-    context['eol_grade_percent'] = str(grade_percent)
-    context['eol_grade_integer'] = str(int(grade_percent * 100))
-    # EOL
 
     # Translators: This text describes the purpose (and therefore, value) of a course certificate
     context['certificate_info_description'] = _(u"{platform_name} acknowledges achievements through "
@@ -324,15 +301,11 @@ def _update_context_with_user_info(context, user, user_certificate):
     """
     Updates context dictionary with user related info.
     """
-    # EOL
-    user_fullname = user_certificate.name if user_certificate.name else user.profile.name
-    user_eol_rut = get_user_rut(user)
-    # END EOL
+    user_fullname = user.profile.name
     context['username'] = user.username
     context['course_mode'] = user_certificate.mode
     context['accomplishment_user_id'] = user.id
     context['accomplishment_copy_name'] = user_fullname
-    context['user_eol_rut'] = user_eol_rut
     context['accomplishment_copy_username'] = user.username
 
     context['accomplishment_more_title'] = _(u"More Information About {user_name}'s Certificate:").format(
@@ -353,17 +326,6 @@ def _update_context_with_user_info(context, user, user_certificate):
         fullname=user_fullname
     )
 
-def get_user_rut(user):
-    try:
-        user_eol_rut = user.edxloginuser.run if user.edxloginuser.run else ''
-    except AttributeError:
-        user_eol_rut = ''
-    if user_eol_rut == '' or user_eol_rut[0].isalpha():
-        return user_eol_rut
-    aux_rut = str(int(user_eol_rut[:-1]))
-    rut_dv = user_eol_rut[-1].upper()
-    rut = re.sub(r'(?<!^)(?=(\d{3})+$)', r'.', aux_rut)
-    return "{}-{}".format(rut, rut_dv)
 
 def _get_user_certificate(request, user, course_key, course, preview_mode=None):
     """
