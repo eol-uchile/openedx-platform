@@ -348,7 +348,7 @@
      *
      * The priority order from most to least preferable is:
      * 1) HTML5
-     * 2) Flash
+     * 2) Flash (Removed)
      * 3) File input
      *
      * @param  {Object} obj Parameters to the webcam view.
@@ -361,23 +361,6 @@
          obj.backendName = 'html5';
          view = new edx.verify_student.WebcamPhotoView(obj);
          if (view.isSupported()) {
-             return view;
-         }
-
-        // Second choice is Flash, required for older versions of IE
-         obj.backendName = 'flash';
-         view = new edx.verify_student.WebcamPhotoView(obj);
-         if (view.isSupported()) {
-             return view;
-         }
-        // If user is not using mobile device and Flash is not available
-        // then show user error message for Flash
-         if (!view.isMobileDevice() && !view.isSupported()) {
-             view.backend.trigger(
-                'error',
-                gettext('No Flash Detected'),
-                gettext("You don't seem to have Flash installed. Get Flash to continue your verification.")
-            );
              return view;
          }
 
