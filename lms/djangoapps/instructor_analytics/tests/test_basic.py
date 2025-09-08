@@ -290,7 +290,7 @@ class TestAnalyticsBasic(ModuleStoreTestCase):
     ################ EOL ###############################################
     @patch('lms.djangoapps.instructor_analytics.basic.get_user_id_doc_id_pairs')
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)
-    def test_enrolled_students_features_keys_with_run(self, mock_user_id_doc_id_pairs):
+    def test_enrolled_students_features_keys_with_doc_id(self, mock_user_id_doc_id_pairs):
         user_id_doc_id_pairs_list = []
         runs = ('run',)
         query_features = ('run', 'username', 'name', 'email', 'city', 'country',)

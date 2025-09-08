@@ -1271,7 +1271,7 @@ class TestStudentReport(TestReportMixin, InstructorTaskCourseTestCase):
     ################ EOL ###############################################
     @patch('lms.djangoapps.instructor_analytics.basic.get_user_id_doc_id_pairs')
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)
-    def test_users_with_run(self, mock_user_id_doc_id_pairs):
+    def test_users_with_doc_id(self, mock_user_id_doc_id_pairs):
         """
         Test uchileedxlogin users
         """
@@ -1838,7 +1838,7 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
     ################ EOL ###############################################
     @patch('lms.djangoapps.instructor_task.task_helper.grades.get_user_id_doc_id_pairs')
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)            
-    def test_grade_report_with_run(self, mock_user_id_doc_id_pairs):
+    def test_grade_report_with_doc_id(self, mock_user_id_doc_id_pairs):
             
         self.submit_student_answer(self.student.username, u'Problem1', ['Option 1'])  
 
