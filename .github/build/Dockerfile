@@ -103,3 +103,14 @@ RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-p
 RUN pip install -r /tmp/requirements.txt
 RUN pip install boto==2.49.0
 RUN rm /tmp/requirements.txt
+
+# staticfiles env
+ENV STATIC_ROOT_LMS=/openedx/staticfiles/
+ENV STATIC_ROOT_CMS=/openedx/staticfiles/studio/
+ENV SETTINGS=test
+
+# Build static assets
+RUN openedx-assets xmodule
+RUN openedx-assets npm
+RUN openedx-assets webpack --env=prod
+RUN openedx-assets common
