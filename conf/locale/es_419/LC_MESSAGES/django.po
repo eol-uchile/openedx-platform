@@ -16319,9 +16319,9 @@ msgid ""
 "grade.{b_end}"
 msgstr ""
 "Toma este curso de forma gratuita y accede a todo el material, actividades, "
-"evaluaciones y foros del curso. {b_start}Ten en cuenta que esta modalidad no"
-" ofrece la oportunidad de recibir un certificado al finalizar el curso, "
-"aunque se obtenga la calificación necesaria para aprobar.{b_end}"
+"evaluaciones y foros del curso. {b_start} "
+"Ten en cuenta que esta modalidad no ofrece un certificado a los alumnos "
+"que obtengan una nota de aprobado.{b_end}"
 
 #: lms/templates/courseware/accordion.html
 msgid "{chapter} current chapter"
