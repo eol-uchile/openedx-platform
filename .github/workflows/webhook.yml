@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Create GitHub App Token
         id: app_token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ inputs.app_id || vars.EOLITO_BOT_APP_ID }}
           private-key: ${{ secrets.private_key || secrets.EOLITO_BOT_PRIVATE_KEY }}
