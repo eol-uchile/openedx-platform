@@ -11,13 +11,13 @@ jobs:
     steps:
       - name: Create GitHub App Token
         id: app_token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.EOLITO_BOT_APP_ID }}
           private-key: ${{ secrets.EOLITO_BOT_PRIVATE_KEY }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Fast Forward PR
         id: ff-action
