@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   variables:
-    uses: ./.github/workflows/variables.yml
+    uses: eol-uchile/workflow-commons/.github/workflows/variables.yml@main
 
   build:
     needs: [ variables ]
