@@ -61,18 +61,7 @@ from ..models import VideoUploadConfig
 from ..utils import reverse_course_url
 from ..video_utils import validate_video_image
 from .course import get_course_and_check_access
-#### EOL ####
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-from django.db import IntegrityError, transaction
-from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
-try:
-    from eol_vimeo.vimeo_task import task_process_data
-    from eol_vimeo.vimeo_utils import update_create_vimeo_model, update_video_vimeo
-    from django.contrib.auth.base_user import BaseUserManager
-    ENABLE_EOL_VIMEO = True
-except ImportError:
-    ENABLE_EOL_VIMEO = False
-#### END EOL ####
+
 __all__ = [
     'videos_handler',
     'video_encodings_download',
@@ -106,7 +95,7 @@ VIDEO_SUPPORTED_FILE_FORMATS = {
     '.mov': 'video/quicktime',
 }
 
-VIDEO_UPLOAD_MAX_FILE_SIZE_GB = 3
+VIDEO_UPLOAD_MAX_FILE_SIZE_GB = 5
 
 # maximum time for video to remain in upload state
 MAX_UPLOAD_HOURS = 24
@@ -185,20 +174,14 @@ class StatusDisplayStrings(object):
         # TODO: Add a related unit tests when the VAL update is part of platform
         "transcript_failed": _TRANSCRIPT_FAILED,
     }
-    #### EOL ####
-    _STATUS_MAP["vimeo_encoding"] = _IN_PROGRESS
-    _STATUS_MAP["vimeo_upload"] = _IN_PROGRESS
-    _STATUS_MAP["upload_completed_encoding"] = _IN_PROGRESS
-    _STATUS_MAP["vimeo_not_found"] = 'Video no encontrado'
-    _STATUS_MAP["vimeo_patch_failed"] = 'Error Patch'
-    #### END EOL ####
+
     @staticmethod
     def get(val_status):
         """Map a VAL status string to a localized display string"""
         # pylint: disable=translation-of-non-string
         return _(StatusDisplayStrings._STATUS_MAP.get(val_status, StatusDisplayStrings._UNKNOWN))
 
-@transaction.non_atomic_requests
+
 @expect_json
 @login_required
 @require_http_methods(("GET", "POST", "DELETE"))
@@ -233,46 +216,14 @@ def videos_handler(request, course_key_string, edx_video_id=None):
         return JsonResponse()
     else:
         if is_status_update_request(request.json):
-            #### EOL ####
-            if ENABLE_EOL_VIMEO:
-                upload_completed_videos = []
-                for video in request.json:
-                    status = video.get('status')
-                    if status == 'upload_completed':
-                        upload_completed_videos.append(video)
-                        status = 'vimeo_upload'
-                    update_video_status(video.get('edxVideoId'), status)
-                    token = BaseUserManager().make_random_password(50)
-                    update_create_vimeo_model(video.get('edxVideoId'), request.user.id, status, video.get('message'), course_key_string, token=token)
-                    LOGGER.info(
-                        u'VIDEOS: Video status update with id [%s], status [%s] and message [%s]',
-                        video.get('edxVideoId'),
-                        status,
-                        video.get('message')
-                    )
-                if len(upload_completed_videos) > 0:
-                    name_folder = configuration_helpers.get_value('EOL_VIMEO_MAIN_FOLDER', settings.EOL_VIMEO_MAIN_FOLDER)
-                    domain = request.build_absolute_uri('/')[:-1]
-                    status_vimeo_task = vimeo_task(request, course_key_string, upload_completed_videos, name_folder, domain)
-                return JsonResponse()
-            else:
-                LOGGER.info('EolVimeo is not installed')
-                #### END EOL ####
-                return send_video_status_update(request.json)
+            return send_video_status_update(request.json)
         elif _is_pagination_context_update_request(request):
             return _update_pagination_context(request)
 
         data, status = videos_post(course, request)
         return JsonResponse(data, status=status)
-#### EOL ####
-def vimeo_task(request, course_id, data, name_folder, domain):
-    try:
-        task = task_process_data(request, course_id, data, name_folder, domain)
-        return True
-    except AlreadyRunningError:
-        LOGGER.error("EolVimeo - Task Already Running Error, user: {}, course_id: {}".format(request.user, course_id))
-        return False
-#### END EOL ####
+
+
 @api_view(['POST'])
 @view_auth_classes()
 @expect_json
@@ -679,10 +630,6 @@ def videos_index_html(course, pagination_conf=None):
     """
     Returns an HTML page to display previous video uploads and allow new ones
     """
-    #### EOL ####
-    if ENABLE_EOL_VIMEO:
-        update_video_vimeo(six.text_type(course.id))
-    #### END EOL ####
     is_video_transcript_enabled = VideoTranscriptEnabledFlag.feature_enabled(course.id)
     previous_uploads, pagination_context = _get_index_videos(course, pagination_conf)
     context = {
@@ -806,39 +753,33 @@ def videos_post(course, request):
 
         edx_video_id = six.text_type(uuid4())
         key = storage_service_key(bucket, file_name=edx_video_id)
-        #### EOL ####
-        if ENABLE_EOL_VIMEO:
-            upload_url = key.generate_url(
-                KEY_EXPIRATION_IN_SECONDS,
-                'PUT'
-            )
-        else:
-            #### END EOL ####
-            metadata_list = [
-                ('client_video_id', file_name),
-                ('course_key', six.text_type(course.id)),
-            ]
-            deprecate_youtube = waffle_flags()[DEPRECATE_YOUTUBE]
-            course_video_upload_token = course.video_upload_pipeline.get('course_video_upload_token')
 
-            # Only include `course_video_upload_token` if youtube has not been deprecated
-            # for this course.
-            if not deprecate_youtube.is_enabled(course.id) and course_video_upload_token:
-                metadata_list.append(('course_video_upload_token', course_video_upload_token))
+        metadata_list = [
+            ('client_video_id', file_name),
+            ('course_key', six.text_type(course.id)),
+        ]
 
-            is_video_transcript_enabled = VideoTranscriptEnabledFlag.feature_enabled(course.id)
-            if is_video_transcript_enabled:
-                transcript_preferences = get_transcript_preferences(six.text_type(course.id))
-                if transcript_preferences is not None:
-                    metadata_list.append(('transcript_preferences', json.dumps(transcript_preferences)))
+        deprecate_youtube = waffle_flags()[DEPRECATE_YOUTUBE]
+        course_video_upload_token = course.video_upload_pipeline.get('course_video_upload_token')
 
-            for metadata_name, value in metadata_list:
-                key.set_metadata(metadata_name, value)
-            upload_url = key.generate_url(
-                KEY_EXPIRATION_IN_SECONDS,
-                'PUT',
-                headers={'Content-Type': req_file['content_type']}
-            )
+        # Only include `course_video_upload_token` if youtube has not been deprecated
+        # for this course.
+        if not deprecate_youtube.is_enabled(course.id) and course_video_upload_token:
+            metadata_list.append(('course_video_upload_token', course_video_upload_token))
+
+        is_video_transcript_enabled = VideoTranscriptEnabledFlag.feature_enabled(course.id)
+        if is_video_transcript_enabled:
+            transcript_preferences = get_transcript_preferences(six.text_type(course.id))
+            if transcript_preferences is not None:
+                metadata_list.append(('transcript_preferences', json.dumps(transcript_preferences)))
+
+        for metadata_name, value in metadata_list:
+            key.set_metadata(metadata_name, value)
+        upload_url = key.generate_url(
+            KEY_EXPIRATION_IN_SECONDS,
+            'PUT',
+            headers={'Content-Type': req_file['content_type']}
+        )
 
         # persist edx_video_id in VAL
         create_video({
@@ -858,23 +799,18 @@ def videos_post(course, request):
 def storage_service_bucket():
     """
     Returns an S3 bucket for video upload.
-    #### EOL ####
-        'host': settings.AWS_S3_ENDPOINT_DOMAIN
-    #### EOL ####
     """
     if waffle_flags()[ENABLE_DEVSTACK_VIDEO_UPLOADS].is_enabled():
         params = {
             'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
             'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY,
-            'security_token': settings.AWS_SECURITY_TOKEN,
-            'host': settings.AWS_S3_ENDPOINT_DOMAIN
+            'security_token': settings.AWS_SECURITY_TOKEN
 
         }
     else:
         params = {
             'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
-            'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY,
-            'host': settings.AWS_S3_ENDPOINT_DOMAIN
+            'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY
         }
 
     conn = s3.connection.S3Connection(**params)

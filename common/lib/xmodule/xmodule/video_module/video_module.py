@@ -366,25 +366,9 @@ class VideoBlock(
             self.youtube_streams = youtube_streams or create_youtube_string(self)  # pylint: disable=W0201
 
         settings_service = self.runtime.service(self, 'settings')
+
         poster = None
-        #### EOL ####
-        try:
-            if self.edx_video_id:
-                from eol_vimeo.models import EolVimeoVideo
-                video_vimeo = EolVimeoVideo.objects.get(edx_video_id=self.edx_video_id.strip(), course_key=self.course_id)
-                poster = video_vimeo.url_picture
-        except Exception as e:
-            log.info('EolVimeo - Video id does not exist, edx_video_id: {} or Import Error, error: {}'.format(self.edx_video_id.strip(), str(e)))
-        try:
-            if sources and sources[0][0] == '/':
-                sources[0] = 'https://player.vimeo.com/progressive_redirect/playback{}'.format(sources[0])
-            if sources and 'progressive_redirect' in sources[0]:
-                import urllib.request
-                sources[0] = urllib.request.urlopen(sources[0]).geturl()
-        except Exception as e:
-            log.info('EolVimeo - Error to get final video url, edx_video_id: {}, error: {}'.format(self.edx_video_id.strip(), str(e)))
-        #### EOL END ####
-        if not poster and edxval_api and self.edx_video_id:
+        if edxval_api and self.edx_video_id:
             poster = edxval_api.get_course_video_image_url(
                 course_id=self.runtime.course_id.for_branch(None),
                 edx_video_id=self.edx_video_id.strip()
@@ -870,32 +854,9 @@ class VideoBlock(
             'video_url': video_url,
             'edx_video_id': video_id
         }
-        _context.update({'transcripts_basic_tab_metadata': metadata})
-        #### EOL ####
-        eol_videolist = self.get_eol_videos_vimeo(self.course_id)
-        _context['eol_videolist'] = {'data': eol_videolist, 'edx_video_id': self.edx_video_id}
-        _context['course_id'] = str(self.course_id)
-        #### EOL END ####
-        return _context
 
-    def get_eol_videos_vimeo(self, course_key):
-        """
-            EOL: Get a list of vimeo videos, only with status vimeo_encoding and upload_completed 
-        """
-        try:
-            from eol_vimeo.models import EolVimeoVideo
-            from eol_vimeo.vimeo_utils import update_video_vimeo
-            from edxval.api import _get_video
-            update_video_vimeo(str(course_key))
-            video_list = []
-            vimeo_list = EolVimeoVideo.objects.filter(course_key=course_key, status__in=['upload_completed', 'upload_completed_encoding']).values('edx_video_id')
-            for video in vimeo_list:
-                aux = _get_video(video['edx_video_id'])
-                video_list.append({'edx_video_id': video['edx_video_id'], 'display_name': aux.client_video_id})
-            return video_list
-        except ImportError as e:
-            log.error('EolVimeo - Error to import EolVimeoVideo or edxval.api._get_video, exception: {}'.format(str(e)))
-            return []
+        _context.update({'transcripts_basic_tab_metadata': metadata})
+        return _context
 
     @classmethod
     def _parse_youtube(cls, data):
