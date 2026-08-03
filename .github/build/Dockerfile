@@ -86,6 +86,10 @@ ENV LMS_CFG /openedx/config/lms.yml
 ENV STUDIO_CFG /openedx/config/cms.yml
 ENV REVISION_CFG /openedx/config/revision.yml
 
+# staticfiles env
+ENV STATIC_ROOT_LMS=/openedx/staticfiles/
+ENV STATIC_ROOT_CMS=/openedx/staticfiles/studio/
+
 # Entrypoint will fix permissions of all files and run commands as openedx
 ENTRYPOINT ["docker-entrypoint.sh"]
 
@@ -100,11 +104,6 @@ RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-p
 RUN pip install -r /tmp/requirements.txt
 RUN pip install boto==2.49.0
 RUN rm /tmp/requirements.txt
-
-# staticfiles env
-ENV STATIC_ROOT_LMS=/openedx/staticfiles/
-ENV STATIC_ROOT_CMS=/openedx/staticfiles/studio/
-ENV SETTINGS=test
 
 # Build static assets
 RUN openedx-assets xmodule
