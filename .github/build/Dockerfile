@@ -77,11 +77,8 @@ ENV PATH ./node_modules/.bin:${PATH}
 COPY .github/build/bin /openedx/bin
 ENV PATH /openedx/bin:${PATH}
 
-# Create folder that will store *.env.json and *.auth.json files, as well as
-# the settings files.
-COPY .github/build/settings/lms/*.py ./lms/envs/prod/
-COPY .github/build/settings/cms/*.py ./cms/envs/prod/
-RUN mkdir -p /openedx/config ./lms/envs/prod ./cms/envs/prod
+# Create folder that will store the config files
+RUN mkdir -p /openedx/config
 RUN echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
 
 ENV CONFIG_ROOT /openedx/config
