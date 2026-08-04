@@ -59,9 +59,9 @@ jobs:
         id: cache
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-v3-${{ github.sha }}
+          key: ${{ env.CODE }}-${{ env.RELEASE-NAME }}
           restore-keys: |
-            ${{ runner.os }}-buildx-v3-
+            ${{ env.CODE }}-${{ env.RELEASE-NAME }}
 
       - name: Build Open edX
         run: |
