@@ -4203,8 +4203,5 @@ LOGO_TRADEMARK_URL = None
 FAVICON_URL = None
 DEFAULT_EMAIL_LOGO_URL = 'https://edx-cdn.org/v3/default/logo.png'
 
-############## EOL #########################
-REGISTRATION_EMAIL_PATTERNS_DISALLOWED = None
-
 ############## Grade Report - uchileedxlogin #########################
 UCHILEEDXLOGIN_TASK_RUN_ENABLE = False
