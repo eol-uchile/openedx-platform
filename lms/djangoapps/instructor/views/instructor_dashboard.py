@@ -11,8 +11,6 @@ from functools import reduce
 import json
 import pytz
 import six
-import json
-import urllib
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseServerError
@@ -640,32 +638,6 @@ def _section_data_download(course, access):
             'export_ora2_submission_files', kwargs={'course_id': six.text_type(course_key)}
         ),
     }
-    ######### EOL #############
-    try:
-        from eol_report_analytics import views
-        section_data['has_eol_report_analytics'] = True
-        section_data['eol_report_analytics_url'] = '{}?{}'.format(reverse('eol_report_analytics:data'), urllib.parse.urlencode({'course': str(course_key)}))
-    except ImportError:
-        section_data['has_eol_report_analytics'] = False
-
-    try:
-        from xblockcompletion import views
-        section_data['has_xblockcompletion'] = True
-        section_data['xblockcompletion_url_resumen'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'resumen', 'course': six.text_type(course_key)}))
-        section_data['xblockcompletion_url_all'] = '{}?{}'.format(reverse('xblockcompletion-data:data'), urllib.parse.urlencode({'format': 'all', 'course': six.text_type(course_key)}))
-    except ImportError:
-        section_data['has_xblockcompletion'] = False
-    
-    try:
-        from gradeucursos import views
-        section_data['has_gradeucursos'] = True
-        section_data['gradeucursos_url_data'] = reverse('gradeucursos-export:data')
-        section_data['gradeucursos_course'] = six.text_type(course_key)
-        section_data['gradeucursos_grade_cutoff'] = views.Content().get_grade_cutoff(course_key)
-        section_data['gradeucursos_assig_types'] = views.Content()._get_assignment_types(course_key)
-    except ImportError:
-        section_data['has_gradeucursos'] = False
-    ######### EOL #############
     if not access.get('data_researcher'):
         section_data['is_hidden'] = True
     return section_data
