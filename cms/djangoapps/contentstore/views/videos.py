@@ -14,8 +14,6 @@ from uuid import uuid4
 
 import six
 import boto3
-from boto import s3
-from boto.sts import STSConnection
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.storage import staticfiles_storage
