@@ -6,9 +6,11 @@ cd /openedx/edx-platform
 # Create test root folder, required for tests
 mkdir -p test_root/log/ test_root/uploads/ test_root/data/
 
-# Install required edx-ora2 for tests
-#pip3 install -e git+https://github.com/fdns/edx-ora2.git@810e75fb2028272c10b3b86b645720c3e584a4c6#egg=ora2
-pip3 install ora2==2.11.5.1
-
-# Test given parameter
-EDXAPP_TEST_MONGO_HOST=mongodb python -Wd -m pytest --ds=cms.envs.test --junitxml=/openedx/edx-platform/reports/cms/nosetests.xml $1
+# Test EOL Modifications
+DJANGO_SETTINGS_MODULE=cms.envs.test EDXAPP_TEST_MONGO_HOST=mongodb pytest --exitfirst --full-trace --verbose \
+    cms/djangoapps/contentstore/views/tests/test_videos.py \
+    cms/djangoapps/contentstore/views/tests/test_import_export.py \
+    cms/djangoapps/contentstore/tests/test_import.py \
+    common/djangoapps/util/tests/test_file.py \
+    common/djangoapps/util/tests/test_sandboxing.py \
+    cms/djangoapps/api/v1/tests/test_serializers/test_course_runs.py
