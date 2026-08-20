@@ -7,6 +7,8 @@ Unit tests for video-related REST APIs.
 import csv
 import json
 import re
+import os
+import pytest
 from contextlib import contextmanager
 from datetime import datetime
 
@@ -71,6 +73,20 @@ class VideoUploadTestBase(object):
         return reverse_course_url(self.VIEW_NAME, course_key, kwargs)
 
     def setUp(self):
+        # generate fake boto3 config
+        with open("/tmp/boto3.fake", 'w+') as f:
+            f.write(
+'''
+[profile video_uploads]
+aws_access_key_id = minio_user
+aws_secret_access_key = minio_pwd
+s3 =
+    addressing_style = path
+    payload_signing_enabled = True
+    signature_version = s3v4
+'''
+            )
+
         super(VideoUploadTestBase, self).setUp()
         self.url = self.get_url_for_course_key(self.course.id)
         self.test_token = "test_token"
@@ -188,12 +204,13 @@ class VideoUploadTestBase(object):
             'http://example.com/url_{}'.format(file_info['file_name'])
             for file_info in files
         ])
-        mock_s3_client = Mock()
-        mock_s3_client.generate_presigned_url = mock_gen_url
+        mock_s3_session = Mock()
+        mock_boto_client = mock_s3_session.client()
+        mock_boto_client.generate_presigned_url = mock_gen_url
         with patch(
-                'cms.djangoapps.contentstore.views.videos.boto3.client',
-                return_value=mock_s3_client
-        ) as mock_boto_client:
+                'cms.djangoapps.contentstore.views.videos.boto3.Session',
+                return_value=mock_s3_session
+        ) as mock_boto_session:
             results = {}
             try:
                 yield results  # run wrapped block
@@ -204,6 +221,8 @@ class VideoUploadTestBase(object):
         for c in mock_boto_client.call_args_list:
             self.assertEqual(c, call('s3'))
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        os.unlink("/tmp/boto3.fake")
 
 class VideoUploadTestMixin(VideoUploadTestBase):
     """
@@ -294,6 +313,7 @@ class VideoUploadPostTestsMixin(object):
             self.assertIsNotNone(path_match)
             video_id = path_match.group(1)
 
+            '''
             self.assertEqual(
                 call_kwargs['Params']['Metadata'],
                 {
@@ -302,6 +322,7 @@ class VideoUploadPostTestsMixin(object):
                     'course_key': str(self.course.id),
                 }
             )
+            '''
             self.assertEqual(call_kwargs['Params']['ContentType'], file_info['content_type'])
             self.assertEqual(call_kwargs['ExpiresIn'], KEY_EXPIRATION_IN_SECONDS)
 
@@ -351,6 +372,14 @@ class VideoUploadPostTestsMixin(object):
 @override_settings(VIDEO_UPLOAD_PIPELINE={
     "VEM_S3_BUCKET": "vem_test_bucket", "BUCKET": "test_bucket", "ROOT_PATH": "test_root"
 })
+@patch.dict(
+    os.environ,
+    {
+        "AWS_CONFIG_FILE": "/tmp/boto3.fake",
+    },
+    clear=False,
+)
+@override_settings(AWS_S3_ENDPOINT_URL='http://example.com')
 class VideosHandlerTestCase(VideoUploadTestMixin, VideoUploadPostTestsMixin, CourseTestCase):
     """Test cases for the main video upload endpoint"""
 
@@ -567,6 +596,7 @@ class VideosHandlerTestCase(VideoUploadTestMixin, VideoUploadPostTestsMixin, Cou
             settings.VIDEO_UPLOAD_PIPELINE['VEM_S3_BUCKET']
         )
 
+    @pytest.mark.skip(reason="Metadata is not supported")
     @ddt.data(
         {
             'global_waffle': True,
@@ -787,6 +817,14 @@ class VideosHandlerTestCase(VideoUploadTestMixin, VideoUploadPostTestsMixin, Cou
 @override_settings(VIDEO_UPLOAD_PIPELINE={
     "VEM_S3_BUCKET": "vem_test_bucket", "BUCKET": "test_bucket", "ROOT_PATH": "test_root"
 })
+@patch.dict(
+    os.environ,
+    {
+        "AWS_CONFIG_FILE": "/tmp/boto3.fake",
+    },
+    clear=False,
+)
+@override_settings(AWS_S3_ENDPOINT_URL='http://example.com')
 class GenerateVideoUploadLinkTestCase(VideoUploadTestBase, VideoUploadPostTestsMixin, CourseTestCase):
     """
     Test cases for the main video upload endpoint
@@ -811,6 +849,14 @@ class GenerateVideoUploadLinkTestCase(VideoUploadTestBase, VideoUploadPostTestsM
 @ddt.ddt
 @patch.dict('django.conf.settings.FEATURES', {'ENABLE_VIDEO_UPLOAD_PIPELINE': True})
 @override_settings(VIDEO_UPLOAD_PIPELINE={'BUCKET': 'test_bucket', 'ROOT_PATH': 'test_root'})
+@patch.dict(
+    os.environ,
+    {
+        "AWS_CONFIG_FILE": "/tmp/boto3.fake",
+    },
+    clear=False,
+)
+@override_settings(AWS_S3_ENDPOINT_URL='http://example.com')
 class VideoImageTestCase(VideoUploadTestBase, CourseTestCase):
     """
     Tests for video image.
@@ -1105,6 +1151,14 @@ class VideoImageTestCase(VideoUploadTestBase, CourseTestCase):
     Mock(return_value=True)
 )
 @patch.dict('django.conf.settings.FEATURES', {'ENABLE_VIDEO_UPLOAD_PIPELINE': True})
+@patch.dict(
+    os.environ,
+    {
+        "AWS_CONFIG_FILE": "/tmp/boto3.fake",
+    },
+    clear=False,
+)
+@override_settings(AWS_S3_ENDPOINT_URL='http://example.com')
 class TranscriptPreferencesTestCase(VideoUploadTestBase, CourseTestCase):
     """
     Tests for video transcripts preferences.
@@ -1347,6 +1401,7 @@ class TranscriptPreferencesTestCase(VideoUploadTestBase, CourseTestCase):
         preferences = get_transcript_preferences(course_id)
         self.assertIsNone(preferences)
 
+    @pytest.mark.skip(reason="Metadata is not supported")
     @ddt.data(
         (
             None,
@@ -1408,6 +1463,14 @@ class TranscriptPreferencesTestCase(VideoUploadTestBase, CourseTestCase):
 
 @patch.dict("django.conf.settings.FEATURES", {"ENABLE_VIDEO_UPLOAD_PIPELINE": True})
 @override_settings(VIDEO_UPLOAD_PIPELINE={"BUCKET": "test_bucket", "ROOT_PATH": "test_root"})
+@patch.dict(
+    os.environ,
+    {
+        "AWS_CONFIG_FILE": "/tmp/boto3.fake",
+    },
+    clear=False,
+)
+@override_settings(AWS_S3_ENDPOINT_URL='http://example.com')
 class VideoUrlsCsvTestCase(VideoUploadTestMixin, CourseTestCase):
     """Test cases for the CSV download endpoint for video uploads"""
 

@@ -797,7 +797,8 @@ def videos_post(course, request):
     if error:
         return {'error': error}, 400
 
-    s3_client = boto3.client('s3')
+    video_session = boto3.Session(profile_name='video_uploads')
+    s3_client = video_session.client('s3', endpoint_url=settings.AWS_S3_ENDPOINT_URL)
     req_files = data['files']
     resp_files = []
 
@@ -837,7 +838,6 @@ def videos_post(course, request):
                 'Bucket': storage_service_bucket_name(),
                 'Key': storage_service_key_name(edx_video_id),
                 'ContentType': req_file['content_type'],
-                'Metadata': dict(metadata_list),
             },
             ExpiresIn=KEY_EXPIRATION_IN_SECONDS,
         )
