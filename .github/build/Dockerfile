@@ -77,17 +77,18 @@ ENV PATH ./node_modules/.bin:${PATH}
 COPY .github/build/bin /openedx/bin
 ENV PATH /openedx/bin:${PATH}
 
-# Create folder that will store *.env.json and *.auth.json files, as well as
-# the settings files.
-COPY .github/build/settings/lms/*.py ./lms/envs/prod/
-COPY .github/build/settings/cms/*.py ./cms/envs/prod/
-RUN mkdir -p /openedx/config ./lms/envs/prod ./cms/envs/prod
+# Create folder that will store the config files
+RUN mkdir -p /openedx/config
 RUN echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
 
 ENV CONFIG_ROOT /openedx/config
 ENV LMS_CFG /openedx/config/lms.yml
 ENV STUDIO_CFG /openedx/config/cms.yml
 ENV REVISION_CFG /openedx/config/revision.yml
+
+# staticfiles env
+ENV STATIC_ROOT_LMS=/openedx/staticfiles/
+ENV STATIC_ROOT_CMS=/openedx/staticfiles/studio/
 
 # Entrypoint will fix permissions of all files and run commands as openedx
 ENTRYPOINT ["docker-entrypoint.sh"]
@@ -103,11 +104,6 @@ RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-p
 RUN pip install -r /tmp/requirements.txt
 RUN pip install boto==2.49.0
 RUN rm /tmp/requirements.txt
-
-# staticfiles env
-ENV STATIC_ROOT_LMS=/openedx/staticfiles/
-ENV STATIC_ROOT_CMS=/openedx/staticfiles/studio/
-ENV SETTINGS=test
 
 # Build static assets
 RUN openedx-assets xmodule
