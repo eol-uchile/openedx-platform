@@ -376,6 +376,14 @@ class VideoBlock(
                 poster = video_vimeo.url_picture
         except Exception as e:
             log.info('EolVimeo - Video id does not exist, edx_video_id: {} or Import Error, error: {}'.format(self.edx_video_id.strip(), str(e)))
+        try:
+            if sources and sources[0][0] == '/':
+                sources[0] = 'https://player.vimeo.com/progressive_redirect/playback{}'.format(sources[0])
+            if sources and 'progressive_redirect' in sources[0]:
+                import urllib.request
+                sources[0] = urllib.request.urlopen(sources[0]).geturl()
+        except Exception as e:
+            log.info('EolVimeo - Error to get final video url, edx_video_id: {}, error: {}'.format(self.edx_video_id.strip(), str(e)))
         #### EOL END ####
         if not poster and edxval_api and self.edx_video_id:
             poster = edxval_api.get_course_video_image_url(
