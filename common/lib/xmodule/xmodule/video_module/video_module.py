@@ -379,6 +379,9 @@ class VideoBlock(
         try:
             if sources and sources[0][0] == '/':
                 sources[0] = 'https://player.vimeo.com/progressive_redirect/playback{}'.format(sources[0])
+            if sources and 'progressive_redirect' in sources[0]:
+                import urllib.request
+                sources[0] = urllib.request.urlopen(sources[0]).geturl()
         except Exception as e:
             log.info('EolVimeo - Error to get final video url, edx_video_id: {}, error: {}'.format(self.edx_video_id.strip(), str(e)))
         #### EOL END ####
