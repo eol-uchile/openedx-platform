@@ -66,7 +66,7 @@ from django.db import transaction
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 try:
     from eol_vimeo.vimeo_task import task_process_data
-    from eol_vimeo.vimeo_utils import update_create_vimeo_model, update_video_vimeo
+    from eol_vimeo.vimeo_utils import update_create_vimeo_model
     from django.contrib.auth.base_user import BaseUserManager
     ENABLE_EOL_VIMEO = True
 except ImportError:
@@ -685,10 +685,6 @@ def videos_index_html(course, pagination_conf=None):
     """
     Returns an HTML page to display previous video uploads and allow new ones
     """
-    #### EOL ####
-    if ENABLE_EOL_VIMEO:
-        update_video_vimeo(six.text_type(course.id))
-    #### END EOL ####
     is_video_transcript_enabled = VideoTranscriptEnabledFlag.feature_enabled(course.id)
     previous_uploads, pagination_context = _get_index_videos(course, pagination_conf)
     context = {
