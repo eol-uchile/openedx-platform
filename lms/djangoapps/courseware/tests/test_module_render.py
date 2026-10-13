@@ -40,6 +40,7 @@ from pyquery import PyQuery
 from six import text_type
 from six.moves import range
 from web_fragments.fragment import Fragment
+from webob import Response
 from xblock.completable import CompletableXBlockMixin
 from xblock.core import XBlock, XBlockAside
 from xblock.field_data import FieldData
@@ -187,6 +188,29 @@ class XBlockWithoutCompletionAPI(XBlock):
         New code should use the completion event instead.
         """
         return self.runtime.publish(self, 'progress', {})
+
+
+class NoauthHandlerXBlock(XBlock):
+    """
+    XBlock with two handlers that report which user they ran as, for testing the noauth handler URL.
+    """
+
+    @XBlock.handler
+    def allowed_handler(self, request, suffix=''):  # pylint: disable=unused-argument
+        """
+        Handler that the tests put on XBLOCK_NOAUTH_HANDLER_ALLOWLIST.
+        """
+        return Response(json_body={'user_id': self.scope_ids.user_id})
+
+    @XBlock.handler
+    def other_handler(self, request, suffix=''):  # pylint: disable=unused-argument
+        """
+        Handler that is never on XBLOCK_NOAUTH_HANDLER_ALLOWLIST.
+        """
+        return Response(json_body={'user_id': self.scope_ids.user_id})
+
+
+NOAUTH_TEST_ALLOWLIST = [f'{__name__}.NoauthHandlerXBlock.allowed_handler']
 
 
 @ddt.ddt
@@ -967,6 +991,65 @@ class TestHandleXBlockCallback(SharedModuleStoreTestCase, LoginEnrollmentTestCas
             'problem_check',
         )
         self.assertFalse(mock_score_signal.called)
+
+
+@override_settings(XBLOCK_NOAUTH_HANDLER_ALLOWLIST=NOAUTH_TEST_ALLOWLIST)
+class TestNoauthXBlockHandler(ModuleStoreTestCase):
+    """
+    Test which handlers can be called without authentication, and as which user.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.course = CourseFactory.create()
+        self.chapter = BlockFactory.create(parent=self.course, category='chapter')
+
+    def _create_block(self, **kwargs):
+        return BlockFactory.create(parent=self.chapter, category='noauth_test', **kwargs)
+
+    def _handler_url(self, block, handler, url_name='xblock_handler_noauth'):
+        return reverse(url_name, kwargs={
+            'course_id': str(self.course.id),
+            'usage_id': quote_slashes(str(block.location)),
+            'handler': handler,
+        })
+
+    @XBlock.register_temp_plugin(NoauthHandlerXBlock, identifier='noauth_test')
+    def test_handler_not_on_allowlist(self):
+        block = self._create_block()
+
+        response = self.client.post(self._handler_url(block, 'other_handler'))
+
+        assert response.status_code == 404
+
+    @override_settings(XBLOCK_NOAUTH_HANDLER_ALLOWLIST=['no_such_module.NoSuchBlock.handler'] + NOAUTH_TEST_ALLOWLIST)
+    @XBlock.register_temp_plugin(NoauthHandlerXBlock, identifier='noauth_test')
+    def test_unimportable_allowlist_entry_is_skipped(self):
+        block = self._create_block()
+
+        with self.assertLogs('lms.djangoapps.courseware.block_render', level='WARNING') as logs:
+            response = self.client.post(self._handler_url(block, 'allowed_handler'))
+
+        assert response.status_code == 200
+        assert 'no_such_module.NoSuchBlock.handler' in logs.output[0]
+
+    @override_settings(XBLOCK_NOAUTH_HANDLER_ALLOWLIST=settings.XBLOCK_NOAUTH_HANDLER_ALLOWLIST)
+    def test_default_allowlist_blocks_problem_handler(self):
+        problem = BlockFactory.create(parent=self.chapter, category='problem')
+
+        response = self.client.post(self._handler_url(problem, 'xmodule_handler') + '/problem_get')
+
+        assert response.status_code == 404
+
+    @override_settings(XBLOCK_NOAUTH_HANDLER_ALLOWLIST=settings.XBLOCK_NOAUTH_HANDLER_ALLOWLIST)
+    def test_default_allowlist_entries_import(self):
+        """
+        Every handler on the default allowlist exists, so a rename upstream doesn't silently drop it.
+        """
+        handlers = render._get_noauth_handlers(tuple(settings.XBLOCK_NOAUTH_HANDLER_ALLOWLIST))  # pylint: disable=protected-access
+
+        assert len(handlers) == len(settings.XBLOCK_NOAUTH_HANDLER_ALLOWLIST)
+
 
 
 @ddt.ddt
