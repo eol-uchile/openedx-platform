@@ -300,6 +300,9 @@ function(_) {
             // Get the jQuery object and set error event handlers
             this.videoEl = $(this.video);
 
+            // EOL workaround: Add attribute to force Apple browsers to play inline
+            this.videoEl.attr('playsinline','');
+
             // Video player overlay play button
             this.videoOverlayEl = this.el.find('.video-wrapper .btn-play');
 
