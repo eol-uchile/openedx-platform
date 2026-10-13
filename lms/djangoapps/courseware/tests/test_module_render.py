@@ -75,6 +75,7 @@ from openedx.core.lib.courses import course_image_url
 from openedx.core.lib.gating import api as gating_api
 from openedx.core.lib.url_utils import quote_slashes
 from common.djangoapps.student.models import CourseEnrollment, anonymous_id_for_user
+from common.djangoapps.student.tests.factories import TEST_PASSWORD
 from lms.djangoapps.verify_student.tests.factories import SoftwareSecurePhotoVerificationFactory
 from common.djangoapps.xblock_django.models import XBlockConfiguration
 from xmodule.capa_module import ProblemBlock
@@ -1013,6 +1014,20 @@ class TestNoauthXBlockHandler(ModuleStoreTestCase):
             'usage_id': quote_slashes(str(block.location)),
             'handler': handler,
         })
+
+    @XBlock.register_temp_plugin(NoauthHandlerXBlock, identifier='noauth_test')
+    def test_allowed_handler_runs_as_anonymous(self):
+        """
+        An allowed handler runs without a user, even when the request carries a session.
+        """
+        block = self._create_block()
+        user = UserFactory.create()
+        self.client.login(username=user.username, password=TEST_PASSWORD)
+
+        response = self.client.post(self._handler_url(block, 'allowed_handler'))
+
+        assert response.status_code == 200
+        assert json.loads(response.content) == {'user_id': None}
 
     @XBlock.register_temp_plugin(NoauthHandlerXBlock, identifier='noauth_test')
     def test_handler_not_on_allowlist(self):
