@@ -994,6 +994,7 @@ class TestHandleXBlockCallback(SharedModuleStoreTestCase, LoginEnrollmentTestCas
         self.assertFalse(mock_score_signal.called)
 
 
+@ddt.ddt
 @override_settings(XBLOCK_NOAUTH_HANDLER_ALLOWLIST=NOAUTH_TEST_ALLOWLIST)
 class TestNoauthXBlockHandler(ModuleStoreTestCase):
     """
@@ -1065,6 +1066,17 @@ class TestNoauthXBlockHandler(ModuleStoreTestCase):
 
         assert len(handlers) == len(settings.XBLOCK_NOAUTH_HANDLER_ALLOWLIST)
 
+    @ddt.data(False, True)
+    @XBlock.register_temp_plugin(NoauthHandlerXBlock, identifier='noauth_test')
+    def test_anonymous_get_checks_access(self, visible_to_staff_only):
+        """
+        An anonymous GET on the regular handler URL only reaches blocks an anonymous user can load.
+        """
+        block = self._create_block(visible_to_staff_only=visible_to_staff_only)
+
+        response = self.client.get(self._handler_url(block, 'other_handler', url_name='xblock_handler'))
+
+        assert response.status_code == (404 if visible_to_staff_only else 200)
 
 
 @ddt.ddt
