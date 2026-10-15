@@ -29,7 +29,7 @@ from xmodule.modulestore.django import modulestore
 from .config.waffle import DISABLE_REGRADE_ON_POLICY_CHANGE, waffle
 from .constants import ScoreDatabaseTableEnum
 from .course_grade_factory import CourseGradeFactory
-from .exceptions import DatabaseNotReadyError
+from .exceptions import ScoreNotFoundError
 from .grade_utils import are_grades_frozen
 from .signals.signals import SUBSECTION_SCORE_CHANGED
 from .subsection_grade_factory import SubsectionGradeFactory
@@ -41,7 +41,7 @@ COURSE_GRADE_TIMEOUT_SECONDS = 1200
 KNOWN_RETRY_ERRORS = (  # Errors we expect occasionally, should be resolved on retry
     DatabaseError,
     ValidationError,
-    DatabaseNotReadyError,
+    ScoreNotFoundError,
 )
 RECALCULATE_GRADE_DELAY_SECONDS = 2  # to prevent excessive _has_db_updated failures. See TNL-6424.
 RETRY_DELAY_SECONDS = 40
@@ -230,7 +230,7 @@ def _recalculate_subsection_grade(self, **kwargs):
         has_database_updated = _has_db_updated_with_new_score(self, scored_block_usage_key, **kwargs)
 
         if not has_database_updated:
-            raise DatabaseNotReadyError
+            raise ScoreNotFoundError
 
         _update_subsection_grades(
             course_key,
