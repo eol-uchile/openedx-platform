@@ -288,20 +288,18 @@ class TestAnalyticsBasic(ModuleStoreTestCase):
             self.assertEqual(set(proctored_exam_attempt.keys()), set(query_features))
 
     ################ EOL ###############################################
+    @patch('lms.djangoapps.instructor_analytics.basic.get_user_id_doc_id_pairs')
     @override_settings(UCHILEEDXLOGIN_TASK_RUN_ENABLE=True)
-    def test_enrolled_students_features_keys_with_run(self):
-        try:
-            from unittest.case import SkipTest
-            from uchileedxlogin.models import EdxLoginUser
-        except ImportError:
-            self.skipTest("import error uchileedxlogin")
+    def test_enrolled_students_features_keys_with_doc_id(self, mock_user_id_doc_id_pairs):
+        user_id_doc_id_pairs_list = []
         runs = ('run',)
         query_features = ('run', 'username', 'name', 'email', 'city', 'country',)
         for user in self.users:
-            EdxLoginUser.objects.create(user=user, run='000000000{}'.format(user.id))
+            user_id_doc_id_pairs_list.return_value.append((user.id,'000000000{}'.format(user.id)))
             user.profile.city = "Mos Eisley {}".format(user.id)
             user.profile.country = "Tatooine {}".format(user.id)
             user.profile.save()
+        mock_user_id_doc_id_pairs.return_value = user_id_doc_id_pairs_list
         for feature in query_features:
             self.assertIn(feature, AVAILABLE_FEATURES + runs)
         with self.assertNumQueries(2):
@@ -311,11 +309,10 @@ class TestAnalyticsBasic(ModuleStoreTestCase):
         userreports = sorted(userreports, key=lambda u: u["username"])
         users = sorted(self.users, key=lambda u: u.username)
         for userreport, user in zip(userreports, users):
-            aux = EdxLoginUser.objects.get(user=user)
             self.assertEqual(set(userreport.keys()), set(query_features))
             self.assertEqual(userreport['username'], user.username)
             self.assertEqual(userreport['email'], user.email)
             self.assertEqual(userreport['name'], user.profile.name)
             self.assertEqual(userreport['city'], user.profile.city)
             self.assertEqual(userreport['country'], user.profile.country)
-            self.assertEqual(userreport['run'], aux.run)        
+            self.assertEqual(userreport['run'], '000000000{}'.format(user.id))        

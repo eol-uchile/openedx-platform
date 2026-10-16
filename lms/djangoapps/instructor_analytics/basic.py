@@ -19,6 +19,7 @@ from django.urls import reverse
 from edx_proctoring.api import get_exam_violation_report
 from opaque_keys.edx.keys import CourseKey, UsageKey
 from six import text_type
+from uchileedxlogin.services.interface import get_user_id_doc_id_pairs
 
 import xmodule.graders as xmgraders
 from lms.djangoapps.courseware.models import StudentModule
@@ -113,7 +114,9 @@ def enrolled_students_features(course_key, features):
 
     ####### EOL ###############
     if include_run_column and settings.UCHILEEDXLOGIN_TASK_RUN_ENABLE:
-        students = students.prefetch_related('edxloginuser')
+        user_id_list = students.values_list('id', flat=True)
+        user_doc_id = get_user_id_doc_id_pairs(user_id_list)
+        user_doc_id_dict = {id: doc_id for id, doc_id in user_doc_id}
 
     def extract_attr(student, feature):
         """Evaluate a student attribute that is ready for JSON serialization"""
@@ -141,11 +144,7 @@ def enrolled_students_features(course_key, features):
         student_dict = {}
         ########### EOL ##########################
         if settings.UCHILEEDXLOGIN_TASK_RUN_ENABLE:
-            try:
-                from uchileedxlogin.models import EdxLoginUser
-                student_dict['run'] = student.edxloginuser.run
-            except EdxLoginUser.DoesNotExist:
-                student_dict['run'] = ""
+            student_dict['run'] = user_doc_id_dict.get(student['id'], '')
         ###########################################
         student_dict_aux = dict((feature, extract_attr(student, feature))
                             for feature in student_features)
