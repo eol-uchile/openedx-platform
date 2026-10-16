@@ -4,7 +4,7 @@ set -x
 cd /openedx/edx-platform
 
 # Create test root folder, required for tests
-mkdir -p test_root/log/
+mkdir -p test_root/log/ test_root/uploads/ test_root/data/
 
 # Install required edx-ora2 for tests
 #pip3 install -e git+https://github.com/fdns/edx-ora2.git@810e75fb2028272c10b3b86b645720c3e584a4c6#egg=ora2
