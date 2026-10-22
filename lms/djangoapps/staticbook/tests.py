@@ -159,6 +159,19 @@ class StaticPdfBookTest(StaticBookTest):
         self.assertContains(response, "file={}".format(PDF_BOOK['chapters'][1]['url']))
         self.assertContains(response, "page=17")
 
+    def test_viewer_template_renders(self):
+        # The ?viewer=true path renders pdf_viewer.html (the embedded pdf.js
+        # viewer page). Confirm it parses, returns 200, and includes the
+        # vendored viewer's asset URLs.
+        self.make_course(pdf_textbooks=[PDF_BOOK])
+        url = self.make_url('pdf_book', book_index=0, chapter=1)
+        response = self.client.get(url + "?viewer=true")
+        assert response.status_code == 200
+        self.assertContains(response, "Chapter 1 for PDF")
+        self.assertContains(response, "/js/vendor/pdfjs/web/")
+        self.assertContains(response, "viewer.mjs")
+        self.assertContains(response, "pdf-analytics.js")
+
     def test_bad_book_id(self):
         # If the book id isn't an int, we'll get a 404.
         self.make_course(pdf_textbooks=[PDF_BOOK])
