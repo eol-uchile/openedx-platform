@@ -14,6 +14,7 @@ DJANGO_SETTINGS_MODULE=lms.envs.test EDXAPP_TEST_MONGO_HOST=mongodb pytest --exi
     lms/djangoapps/instructor_task/tests/test_tasks_helper.py \
     lms/djangoapps/instructor_analytics/tests/test_basic.py \
     lms/djangoapps/certificates/tests/test_webview_views.py \
+    lms/djangoapps/discussion/tests/ \
     lms/djangoapps/bulk_email/tests/ \
     lms/djangoapps/instructor/tests/ \
     common/djangoapps/util/tests/test_file.py \
