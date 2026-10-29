@@ -8,6 +8,7 @@ mkdir -p test_root/log/ test_root/uploads/ test_root/data/
 
 # Test EOL Modifications
 DJANGO_SETTINGS_MODULE=lms.envs.test EDXAPP_TEST_MONGO_HOST=mongodb pytest --exitfirst --full-trace --verbose \
+    openedx/core/djangoapps/debug/tests/test_urls.py \
     openedx/features/course_experience/tests/views/test_course_home.py \
     lms/djangoapps/courseware/tests/test_courses.py \
     lms/djangoapps/instructor_task/tests/test_tasks_helper.py \
