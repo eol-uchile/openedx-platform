@@ -920,10 +920,11 @@ if settings.DEBUG:
         document_root=settings.PROFILE_IMAGE_BACKEND['options']['location']
     )
 
-# UX reference templates
-urlpatterns += [
-    url(r'^template/(?P<template>.+)$', openedx_debug_views.show_reference_template),
-]
+    # UX reference templates: development only. The view renders any template with
+    # request.GET as its context, so it must never be routed in production.
+    urlpatterns += [
+        url(r'^template/(?P<template>.+)$', openedx_debug_views.show_reference_template),
+    ]
 
 if 'debug_toolbar' in settings.INSTALLED_APPS:
     import debug_toolbar
