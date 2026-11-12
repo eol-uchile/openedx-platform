@@ -1,0 +1,22 @@
+version: "3"
+services:
+  memcached:
+    image: memcached:1.4.38
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:4.0.26
+    command: mongod --smallfiles --nojournal --storageEngine wiredTiger
+    restart: unless-stopped
+
+  lms:
+    image: ghcr.io/eol-uchile/openedx:testing-current
+    depends_on:
+      - memcached
+      - mongodb
+  
+  cms:
+    image: ghcr.io/eol-uchile/openedx:testing-current
+    depends_on:
+      - memcached
+      - mongodb
