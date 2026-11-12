@@ -1,0 +1,112 @@
+FROM ubuntu:focal AS base
+
+############ common to lms & cms
+ARG EDX_PLATFORM_VERSION=undefined
+
+# Install system requirements
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt update \
+    # Global requirements
+    && apt install --no-install-recommends -yq language-pack-en git build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev libmysqlclient-dev libxmlsec1-dev libfreetype6-dev libssl-dev swig gcc g++ \
+    # openedx requirements
+    gettext gfortran graphviz libgraphviz-dev libffi-dev libfreetype6-dev libgeos-dev libjpeg8-dev liblapack-dev libpng-dev libsqlite3-dev libxml2-dev libxmlsec1-dev libxslt1-dev ntp pkg-config python3 python3-dev python3-pip lynx python3-venv \
+    # Our requirements
+    mysql-client locales unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/bin/pip \
+    && ln -s /usr/bin/pip3 /usr/bin/pip \
+    && ln -s /usr/bin/python3 /usr/bin/python
+
+# Setup system locales, this is used to fix accent in code
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+# https://github.com/pypa/setuptools/issues/2352 , https://setuptools.readthedocs.io/en/latest/history.html#v50-0-0
+ENV SETUPTOOLS_USE_DISTUTILS stdlib
+
+# Dockerize will be useful to wait for mysql DB availability
+ARG DOCKERIZE_VERSION=v0.7.0
+RUN curl -L -o /tmp/dockerize.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf /tmp/dockerize.tar.gz \
+    && rm /tmp/dockerize.tar.gz
+
+# Common requirements
+WORKDIR /openedx/edx-platform
+COPY requirements requirements
+COPY common/lib/sandbox-packages common/lib/sandbox-packages
+COPY common/lib/symmath common/lib/symmath
+
+# Setup sandbox
+ENV SANDBOX_ENV=/openedx/venv/sandbox
+RUN groupadd -r sandbox && useradd -m -r -g sandbox sandbox \
+    && mkdir -p $SANDBOX_ENV && chown sandbox:sandbox $SANDBOX_ENV
+
+RUN python3 -m venv --copies $SANDBOX_ENV \
+    && $SANDBOX_ENV/bin/pip install --no-cache-dir pip==20.3.4 \
+    && $SANDBOX_ENV/bin/pip install --no-cache-dir wheel==0.41.3 \
+    # Install numpy before scipy
+    && $SANDBOX_ENV/bin/pip install --no-cache-dir $(grep -o "^numpy==\w\+.\w\+.\w\+" requirements/edx-sandbox/py35.txt) \
+    && $SANDBOX_ENV/bin/pip install --no-cache-dir -r requirements/edx-sandbox/py35.txt
+
+## Checkout edx-platform code
+ADD . /openedx/edx-platform
+
+# Install python requirements (clone source repos in a separate dir, otherwise
+# they will be overwritten when we mount edx-platform)
+# Also update boto from 2.39.0 to 2.49.0 as it has an exception on python3
+# Finally, install a compatibility layer for s3 (VIDEO_TRANSCRIPTS_SETTINGS save has an ASCII error on data)
+ENV NO_PYTHON_UNINSTALL 1
+RUN pip install pip==20.3.4
+RUN pip install --src ../venv/src -r requirements/edx/base.txt
+RUN pip install boto==2.49.0
+
+# Manually update pytz (Timezones)
+RUN pip install pytz --upgrade
+
+# Install a recent version of nodejs
+RUN nodeenv /openedx/nodeenv --node=12.22.12 --prebuilt
+ENV PATH /openedx/nodeenv/bin:${PATH}
+
+# Install nodejs requirements
+RUN npm set progress=false \
+    && npm install
+ENV PATH ./node_modules/.bin:${PATH}
+
+# Copy scripts
+COPY .github/build/bin /openedx/bin
+ENV PATH /openedx/bin:${PATH}
+
+# Create folder that will store the config files
+RUN mkdir -p /openedx/config
+RUN echo "EDX_PLATFORM_REVISION: ${EDX_PLATFORM_VERSION}" > /openedx/config/revision.yml
+
+ENV CONFIG_ROOT /openedx/config
+ENV LMS_CFG /openedx/config/lms.yml
+ENV STUDIO_CFG /openedx/config/cms.yml
+ENV REVISION_CFG /openedx/config/revision.yml
+
+# staticfiles env
+ENV STATIC_ROOT_LMS=/openedx/staticfiles/
+ENV STATIC_ROOT_CMS=/openedx/staticfiles/studio/
+
+# Entrypoint will fix permissions of all files and run commands as openedx
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Run server
+EXPOSE 8000
+CMD gunicorn --name ${SERVICE_VARIANT} --workers ${WORKER_COUNT:-1} --max-requests-jitter=50 --bind=0.0.0.0:8000 --max-requests=${MAX_REQUESTS:-1000} --preload ${SERVICE_VARIANT}.wsgi:application
+
+FROM base AS testing
+
+# Install testing packages
+RUN grep -v -x -f /openedx/edx-platform/requirements/edx/base.txt /openedx/edx-platform/requirements/edx/development.txt > /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+RUN pip install boto==2.49.0
+RUN rm /tmp/requirements.txt
+
+# Build static assets
+RUN openedx-assets xmodule
+RUN openedx-assets npm
+RUN openedx-assets webpack --env=prod
+RUN openedx-assets common

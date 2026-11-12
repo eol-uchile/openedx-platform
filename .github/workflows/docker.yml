@@ -1,0 +1,101 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - 'eol-release/**'
+      - 'openuchile-release/**'
+      - 'vlabx-release/**'
+  merge_group:
+    types: [checks_requested]
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - 'eol/**'
+      - 'openuchile/**'
+      - 'vlabx/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  variables:
+    uses: eol-uchile/workflow-commons/.github/workflows/variables.yml@main
+
+  build:
+    needs: [ variables ]
+    runs-on: ubuntu-latest
+    env:
+      TS: ${{ needs.variables.outputs.timestamp }}
+      RELEASE-NAME: ${{ needs.variables.outputs.release-name }}
+      CODE: ${{ needs.variables.outputs.code }}
+    permissions:
+      packages: write
+
+    steps:
+      - name: Define testing prefix
+        id: prefix
+        run: |
+          if [[ "${{ needs.variables.outputs.is-prod }}" = "true" ]]
+          then
+            echo "PREFIX=" >> $GITHUB_OUTPUT
+            echo "TARGET=base" >> $GITHUB_OUTPUT
+          else
+            echo "PREFIX=testing-" >> $GITHUB_OUTPUT
+            echo "TARGET=testing" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Open edX
+        run: |
+          docker buildx build . \
+            --file .github/build/Dockerfile \
+            --target ${{ steps.prefix.outputs.TARGET }} \
+            --build-arg EDX_PLATFORM_VERSION=${{ env.RELEASE-NAME }}.${{ steps.prefix.outputs.PREFIX }}${{ env.TS }} \
+            --tag ghcr.io/eol-uchile/openedx:testing-current \
+            --tag ghcr.io/eol-uchile/openedx:${GITHUB_SHA} \
+            --tag ghcr.io/eol-uchile/openedx:${{ steps.prefix.outputs.PREFIX }}${{ env.RELEASE-NAME }}-${{ env.TS }} \
+            --tag ghcr.io/eol-uchile/openedx:${{ steps.prefix.outputs.PREFIX }}${{ env.RELEASE-NAME }} \
+            --cache-from=type=registry,ref=ghcr.io/eol-uchile/openedx:${{ steps.prefix.outputs.PREFIX }}${{ env.RELEASE-NAME }}-cache \
+            --cache-to=type=registry,ref=ghcr.io/eol-uchile/openedx:${{ steps.prefix.outputs.PREFIX }}${{ env.RELEASE-NAME }}-cache,mode=max \
+            --output "type=docker,push=false"
+
+      - name: Test edX platform
+        if: ${{ needs.variables.outputs.is-prod == 'false' }}
+        run: |
+          cd .github/test
+          docker compose run lms /openedx/edx-platform/.github/test/tests.sh
+
+      - name: Push the image to the registry
+        if: ${{ github.event_name == 'merge_group' || ( github.event_name == 'push' && needs.variables.outputs.is-prod == 'true' ) }}
+        run: |
+          docker push ghcr.io/eol-uchile/openedx:${GITHUB_SHA}
+          docker push ghcr.io/eol-uchile/openedx:${{ steps.prefix.outputs.PREFIX }}${{ env.RELEASE-NAME }}-${{ env.TS }}
+          docker push ghcr.io/eol-uchile/openedx:${{ steps.prefix.outputs.PREFIX }}${{ env.RELEASE-NAME }}
+
+  webhook:
+    needs: [ variables, build ]
+    if: ${{ github.event_name == 'merge_group' || github.event_name == 'push' }}
+    uses: ./.github/workflows/webhook.yml
+    with:
+      code: ${{ needs.variables.outputs.code }}
+      release-name: ${{ needs.variables.outputs.release-name }}
+      is-prod: ${{ needs.variables.outputs.is-prod }}
+      app_id: ${{ vars.EOLITO_BOT_APP_ID }}
+    secrets:
+      private_key: ${{ secrets.EOLITO_BOT_PRIVATE_KEY }}
